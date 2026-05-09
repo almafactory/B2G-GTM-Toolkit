@@ -18,13 +18,13 @@
 
 **Propósito**: Crear el scaffold instalable local-first del toolkit.
 
-- [ ] T001 Crear el esqueleto del paquete Python en `src/b2g_gtm_toolkit/` con `__init__.py`, `cli.py`, `config.py` y subcarpetas del paquete.
-- [ ] T002 Crear los metadatos del proyecto y la configuración de dependencias en `pyproject.toml` para Python 3.11+, Typer, Pydantic, httpx, notion-client, python-dotenv, tenacity, pytest y jsonschema.
-- [ ] T003 Crear `.env.example` con placeholders para Notion, datos.gov.co/SECOP, Slack, email y ruta local de salida.
-- [ ] T004 Crear carpetas locales por defecto `data/runs/`, `schemas/`, `skills/` y `tests/fixtures/`.
-- [ ] T005 Agregar el entrypoint CLI `b2g-gtm` con comandos placeholder en `src/b2g_gtm_toolkit/cli.py`.
-- [ ] T006 Actualizar `README.md` con alcance MVP, enfoque de instalación, setup local, compatibilidad con agentes y flujo de primer uso.
-- [ ] T007 [P] Agregar entradas en `.gitignore` para `.env`, salidas locales de ejecución, caches, entornos virtuales y exports temporales de Notion.
+- [X] T001 Crear el esqueleto del paquete Python en `src/b2g_gtm_toolkit/` con `__init__.py`, `cli.py`, `config.py` y subcarpetas del paquete.
+- [X] T002 Crear los metadatos del proyecto y la configuración de dependencias en `pyproject.toml` para Python 3.11+, Typer, Pydantic, httpx, notion-client, python-dotenv, tenacity, pytest y jsonschema.
+- [X] T003 Crear `.env.example` con placeholders para Notion, datos.gov.co/SECOP, Slack, email y ruta local de salida.
+- [X] T004 Crear carpetas locales por defecto `data/runs/`, `schemas/`, `skills/` y `tests/fixtures/`.
+- [X] T005 Agregar el entrypoint CLI `b2g-gtm` con comandos placeholder en `src/b2g_gtm_toolkit/cli.py`.
+- [X] T006 Actualizar `README.md` con alcance MVP, enfoque de instalación, setup local, compatibilidad con agentes y flujo de primer uso.
+- [X] T007 [P] Agregar entradas en `.gitignore` para `.env`, salidas locales de ejecución, caches, entornos virtuales y exports temporales de Notion.
 
 **Checkpoint**: El paquete se instala localmente y `b2g-gtm --help` puede ejecutarse.
 
@@ -36,17 +36,17 @@
 
 **Bloqueante**: Completar antes de implementar las historias de usuario.
 
-- [ ] T008 Crear modelos Pydantic de business e ICP en `src/b2g_gtm_toolkit/models/business.py`.
-- [ ] T009 Crear modelos de GTM para account, opportunity, owner, signal y output en `src/b2g_gtm_toolkit/models/gtm.py`.
-- [ ] T010 Crear modelos de entrada SECOP, raw record, normalized research record, relevance y provenance en `src/b2g_gtm_toolkit/models/secop.py`.
-- [ ] T011 Crear el manifiesto de bases de datos de Notion y modelos de propiedades en `src/b2g_gtm_toolkit/models/notion.py`.
-- [ ] T012 Crear helpers de ID estable, normalización, hashing y timestamps en `src/b2g_gtm_toolkit/utils/ids.py`.
-- [ ] T013 Crear una configuración de logging estructurado en `src/b2g_gtm_toolkit/utils/logging.py`.
-- [ ] T014 Agregar JSON Schema para la entrada de investigación SECOP en `schemas/secop-research-input.schema.json`.
-- [ ] T015 Copiar o generar el schema de salida de investigación SECOP en `schemas/secop-research-output.schema.json` desde `.sdd/specs/001-b2g-gtm-toolkit/contracts/secop-research-output.schema.json`.
-- [ ] T016 Agregar el schema del manifiesto del workspace de Notion en `schemas/notion-workspace.schema.json`.
-- [ ] T017 [P] Agregar pruebas unitarias para validación de modelos y campos requeridos en `tests/unit/test_models.py`.
-- [ ] T018 [P] Agregar pruebas unitarias para IDs estables, normalización de texto y hashing de payload en `tests/unit/test_ids.py`.
+- [X] T008 Crear modelos Pydantic de business e ICP en `src/b2g_gtm_toolkit/models/business.py`.
+- [X] T009 Crear modelos de GTM para account, opportunity, owner, signal y output en `src/b2g_gtm_toolkit/models/gtm.py`.
+- [X] T010 Crear modelos de entrada SECOP, raw record, normalized research record, relevance y provenance en `src/b2g_gtm_toolkit/models/secop.py`.
+- [X] T011 Crear el manifiesto de bases de datos de Notion y modelos de propiedades en `src/b2g_gtm_toolkit/models/notion.py`.
+- [X] T012 Crear helpers de ID estable, normalización, hashing y timestamps en `src/b2g_gtm_toolkit/utils/ids.py`.
+- [X] T013 Crear una configuración de logging estructurado en `src/b2g_gtm_toolkit/utils/logging.py`.
+- [X] T014 Agregar JSON Schema para la entrada de investigación SECOP en `schemas/secop-research-input.schema.json`.
+- [X] T015 Copiar o generar el schema de salida de investigación SECOP en `schemas/secop-research-output.schema.json` desde `.sdd/specs/001-b2g-gtm-toolkit/contracts/secop-research-output.schema.json`.
+- [X] T016 Agregar el schema del manifiesto del workspace de Notion en `schemas/notion-workspace.schema.json`.
+- [X] T017 [P] Agregar pruebas unitarias para validación de modelos y campos requeridos en `tests/unit/test_models.py`.
+- [X] T018 [P] Agregar pruebas unitarias para IDs estables, normalización de texto y hashing de payload en `tests/unit/test_ids.py`.
 
 **Checkpoint**: Los modelos centrales validan payloads de ejemplo de business profile, ICP, target account, registro SECOP, opportunity, owner, signal y output.
 
@@ -60,13 +60,13 @@
 
 ### Implementation
 
-- [ ] T019 [US1] Crear la carpeta de la skill del flujo ICP en `skills/b2g-icp-workflow/`.
-- [ ] T020 [US1] Escribir `skills/b2g-icp-workflow/SKILL.md` usando `E:\skills\ventas\gtm-icp-definition.md` como metodología base.
-- [ ] T021 [US1] Agregar la plantilla de entrada de business profile en `skills/b2g-icp-workflow/templates/business-profile.md`.
-- [ ] T022 [US1] Agregar la plantilla de salida de ICP en `skills/b2g-icp-workflow/templates/icp-brief.md`.
-- [ ] T023 [US1] Implementar el comando local de validación de business profile en `src/b2g_gtm_toolkit/cli.py`.
-- [ ] T024 [P] [US1] Agregar un fixture de ejemplo de business profile en `tests/fixtures/business-profile.sample.json`.
-- [ ] T025 [US1] Agregar pruebas que validen el business profile de ejemplo y los payloads ICP en `tests/unit/test_icp_workflow_contract.py`.
+- [X] T019 [US1] Crear la carpeta de la skill del flujo ICP en `skills/b2g-icp-workflow/`.
+- [X] T020 [US1] Escribir `skills/b2g-icp-workflow/SKILL.md` usando `E:\skills\ventas\gtm-icp-definition.md` como metodología base.
+- [X] T021 [US1] Agregar la plantilla de entrada de business profile en `skills/b2g-icp-workflow/templates/business-profile.md`.
+- [X] T022 [US1] Agregar la plantilla de salida de ICP en `skills/b2g-icp-workflow/templates/icp-brief.md`.
+- [X] T023 [US1] Implementar el comando local de validación de business profile en `src/b2g_gtm_toolkit/cli.py`.
+- [X] T024 [P] [US1] Agregar un fixture de ejemplo de business profile en `tests/fixtures/business-profile.sample.json`.
+- [X] T025 [US1] Agregar pruebas que validen el business profile de ejemplo y los payloads ICP en `tests/unit/test_icp_workflow_contract.py`.
 
 **Checkpoint**: Un agente puede usar la skill para pedir entradas faltantes y producir un brief ICP que pase el contrato del modelo.
 
@@ -80,12 +80,12 @@
 
 ### Implementation
 
-- [ ] T026 [US2] Crear la guía de generación de target accounts dentro de `skills/b2g-icp-workflow/SKILL.md`.
-- [ ] T027 [US2] Agregar la plantilla de lista de target accounts en `skills/b2g-icp-workflow/templates/target-accounts.md`.
-- [ ] T028 [US2] Implementar la validación de payload de target accounts en `src/b2g_gtm_toolkit/models/gtm.py`.
-- [ ] T029 [US2] Agregar validación CLI para archivos de target accounts en `src/b2g_gtm_toolkit/cli.py`.
-- [ ] T030 [P] [US2] Agregar un fixture de ejemplo de target accounts en `tests/fixtures/target-accounts.sample.json`.
-- [ ] T031 [US2] Agregar pruebas para claves de dedupe de cuentas y límites de fit score en `tests/unit/test_target_accounts.py`.
+- [X] T026 [US2] Crear la guía de generación de target accounts dentro de `skills/b2g-icp-workflow/SKILL.md`.
+- [X] T027 [US2] Agregar la plantilla de lista de target accounts en `skills/b2g-icp-workflow/templates/target-accounts.md`.
+- [X] T028 [US2] Implementar la validación de payload de target accounts en `src/b2g_gtm_toolkit/models/gtm.py`.
+- [X] T029 [US2] Agregar validación CLI para archivos de target accounts en `src/b2g_gtm_toolkit/cli.py`.
+- [X] T030 [P] [US2] Agregar un fixture de ejemplo de target accounts en `tests/fixtures/target-accounts.sample.json`.
+- [X] T031 [US2] Agregar pruebas para claves de dedupe de cuentas y límites de fit score en `tests/unit/test_target_accounts.py`.
 
 **Checkpoint**: Una lista generada de target accounts puede validarse y usarse como entrada para investigación SECOP.
 
@@ -99,16 +99,16 @@
 
 ### Implementation
 
-- [ ] T032 [US3] Crear el registro configurable de datasets SECOP en `src/b2g_gtm_toolkit/secop/datasets.py`.
-- [ ] T033 [US3] Implementar el cliente HTTP de datos.gov.co/SECOP con paginación, reintentos y parámetros de consulta en `src/b2g_gtm_toolkit/secop/client.py`.
-- [ ] T034 [US3] Implementar funciones de normalización SECOP en `src/b2g_gtm_toolkit/secop/normalize.py`.
-- [ ] T035 [US3] Implementar la estrategia de dedupe de SECOP en `src/b2g_gtm_toolkit/secop/dedupe.py`.
-- [ ] T036 [US3] Implementar la orquestación de investigación en `src/b2g_gtm_toolkit/secop/research.py`.
-- [ ] T037 [US3] Agregar el comando `b2g-gtm secop research --input <file>` en `src/b2g_gtm_toolkit/cli.py`.
-- [ ] T038 [US3] Escribir la salida normalizada de la ejecución en `data/runs/<run-id>/secop-research.jsonl`.
-- [ ] T039 [P] [US3] Agregar fixtures de respuestas raw de SECOP en `tests/fixtures/secop/`.
-- [ ] T040 [US3] Agregar pruebas unitarias para normalización, dedupe y provenance en `tests/unit/test_secop_research.py`.
-- [ ] T041 [US3] Agregar prueba de contrato validando la salida contra `schemas/secop-research-output.schema.json` en `tests/contract/test_secop_output_schema.py`.
+- [X] T032 [US3] Crear el registro configurable de datasets SECOP en `src/b2g_gtm_toolkit/secop/datasets.py`.
+- [X] T033 [US3] Implementar el cliente HTTP de datos.gov.co/SECOP con paginación, reintentos y parámetros de consulta en `src/b2g_gtm_toolkit/secop/client.py`.
+- [X] T034 [US3] Implementar funciones de normalización SECOP en `src/b2g_gtm_toolkit/secop/normalize.py`.
+- [X] T035 [US3] Implementar la estrategia de dedupe de SECOP en `src/b2g_gtm_toolkit/secop/dedupe.py`.
+- [X] T036 [US3] Implementar la orquestación de investigación en `src/b2g_gtm_toolkit/secop/research.py`.
+- [X] T037 [US3] Agregar el comando `b2g-gtm secop research --input <file>` en `src/b2g_gtm_toolkit/cli.py`.
+- [X] T038 [US3] Escribir la salida normalizada de la ejecución en `data/runs/<run-id>/secop-research.jsonl`.
+- [X] T039 [P] [US3] Agregar fixtures de respuestas raw de SECOP en `tests/fixtures/secop/`.
+- [X] T040 [US3] Agregar pruebas unitarias para normalización, dedupe y provenance en `tests/unit/test_secop_research.py`.
+- [X] T041 [US3] Agregar prueba de contrato validando la salida contra `schemas/secop-research-output.schema.json` en `tests/contract/test_secop_output_schema.py`.
 
 **Checkpoint**: La investigación SECOP puede ejecutarse desde una entrada estructurada y producir salida válida según esquema, deduplicada y con provenance preservada.
 
@@ -122,17 +122,17 @@
 
 ### Implementation
 
-- [ ] T042 [US4] Definir el manifiesto por defecto del workspace de Notion en `src/b2g_gtm_toolkit/notion/schema.py`.
-- [ ] T043 [US4] Implementar la verificación de bases de datos de Notion en `src/b2g_gtm_toolkit/notion/verify.py`.
-- [ ] T044 [US4] Implementar el planificador de setup dry-run de Notion en `src/b2g_gtm_toolkit/notion/verify.py`.
-- [ ] T045 [US4] Implementar helpers de escritura/actualización de Notion en `src/b2g_gtm_toolkit/notion/write.py`.
-- [ ] T046 [US4] Agregar el comando `b2g-gtm notion verify` en `src/b2g_gtm_toolkit/cli.py`.
-- [ ] T047 [US4] Agregar el comando `b2g-gtm notion setup --dry-run` en `src/b2g_gtm_toolkit/cli.py`.
-- [ ] T048 [US4] Agregar el comando `b2g-gtm notion sync --run <run-id>` en `src/b2g_gtm_toolkit/cli.py`.
-- [ ] T049 [US4] Crear la carpeta de la skill de workflow de Notion en `skills/b2g-notion-gtm-os/`.
-- [ ] T050 [US4] Escribir `skills/b2g-notion-gtm-os/SKILL.md` describiendo verificación, dry-run, sync y flujo de revisión.
-- [ ] T051 [P] [US4] Agregar pruebas para el mapeo de propiedades de Notion en `tests/unit/test_notion_schema.py`.
-- [ ] T052 [US4] Agregar pruebas de integración dry-run con respuestas simuladas de Notion en `tests/integration/test_notion_verify.py`.
+- [X] T042 [US4] Definir el manifiesto por defecto del workspace de Notion en `src/b2g_gtm_toolkit/notion/schema.py`.
+- [X] T043 [US4] Implementar la verificación de bases de datos de Notion en `src/b2g_gtm_toolkit/notion/verify.py`.
+- [X] T044 [US4] Implementar el planificador de setup dry-run de Notion en `src/b2g_gtm_toolkit/notion/verify.py`.
+- [X] T045 [US4] Implementar helpers de escritura/actualización de Notion en `src/b2g_gtm_toolkit/notion/write.py`.
+- [X] T046 [US4] Agregar el comando `b2g-gtm notion verify` en `src/b2g_gtm_toolkit/cli.py`.
+- [X] T047 [US4] Agregar el comando `b2g-gtm notion setup --dry-run` en `src/b2g_gtm_toolkit/cli.py`.
+- [X] T048 [US4] Agregar el comando `b2g-gtm notion sync --run <run-id>` en `src/b2g_gtm_toolkit/cli.py`.
+- [X] T049 [US4] Crear la carpeta de la skill de workflow de Notion en `skills/b2g-notion-gtm-os/`.
+- [X] T050 [US4] Escribir `skills/b2g-notion-gtm-os/SKILL.md` describiendo verificación, dry-run, sync y flujo de revisión.
+- [X] T051 [P] [US4] Agregar pruebas para el mapeo de propiedades de Notion en `tests/unit/test_notion_schema.py`.
+- [X] T052 [US4] Agregar pruebas de integración dry-run con respuestas simuladas de Notion en `tests/integration/test_notion_verify.py`.
 
 **Checkpoint**: El toolkit puede verificar la preparación del esquema de Notion y preparar payloads de sync sin requerir escrituras reales durante las pruebas.
 
@@ -146,15 +146,15 @@
 
 ### Implementation
 
-- [ ] T053 [US5] Crear la carpeta de la skill de workflow de salida en `skills/b2g-output-workflows/`.
-- [ ] T054 [US5] Escribir `skills/b2g-output-workflows/SKILL.md` usando skills de ventas para soporte de outreach, preparación de reuniones, calificación y propuesta/business case.
-- [ ] T055 [US5] Implementar el builder de contexto de outreach en `src/b2g_gtm_toolkit/outputs/outreach.py`.
-- [ ] T056 [US5] Implementar el builder de contexto de preparación de reunión en `src/b2g_gtm_toolkit/outputs/meeting_prep.py`.
-- [ ] T057 [US5] Implementar el builder de contexto de propuesta/business case en `src/b2g_gtm_toolkit/outputs/proposal_brief.py`.
-- [ ] T058 [US5] Agregar plantillas de salida en `skills/b2g-output-workflows/templates/`.
-- [ ] T059 [US5] Agregar el comando `b2g-gtm output create --type <type> --source <id>` en `src/b2g_gtm_toolkit/cli.py`.
-- [ ] T060 [P] [US5] Agregar un fixture de oportunidad investigada en `tests/fixtures/opportunity.sample.json`.
-- [ ] T061 [US5] Agregar snapshot tests para el contexto generado de outreach, preparación de reunión y propuesta/business case en `tests/unit/test_outputs.py`.
+- [X] T053 [US5] Crear la carpeta de la skill de workflow de salida en `skills/b2g-output-workflows/`.
+- [X] T054 [US5] Escribir `skills/b2g-output-workflows/SKILL.md` usando skills de ventas para soporte de outreach, preparación de reuniones, calificación y propuesta/business case.
+- [X] T055 [US5] Implementar el builder de contexto de outreach en `src/b2g_gtm_toolkit/outputs/outreach.py`.
+- [X] T056 [US5] Implementar el builder de contexto de preparación de reunión en `src/b2g_gtm_toolkit/outputs/meeting_prep.py`.
+- [X] T057 [US5] Implementar el builder de contexto de propuesta/business case en `src/b2g_gtm_toolkit/outputs/proposal_brief.py`.
+- [X] T058 [US5] Agregar plantillas de salida en `skills/b2g-output-workflows/templates/`.
+- [X] T059 [US5] Agregar el comando `b2g-gtm output create --type <type> --source <id>` en `src/b2g_gtm_toolkit/cli.py`.
+- [X] T060 [P] [US5] Agregar un fixture de oportunidad investigada en `tests/fixtures/opportunity.sample.json`.
+- [X] T061 [US5] Agregar snapshot tests para el contexto generado de outreach, preparación de reunión y propuesta/business case en `tests/unit/test_outputs.py`.
 
 **Checkpoint**: Una oportunidad investigada puede producir entregables para AE respaldados por fuentes.
 
@@ -168,10 +168,10 @@
 
 ### Implementation
 
-- [ ] T062 [US6] Asegurar que los modelos de owner y signal incluyan Slack ID, email, preferencia de notificación, prioridad, estado de acción y estado de notificación en `src/b2g_gtm_toolkit/models/gtm.py`.
-- [ ] T063 [US6] Incluir `B2G Owners` y `B2G Signals` en el manifiesto del esquema de Notion en `src/b2g_gtm_toolkit/notion/schema.py`.
-- [ ] T064 [US6] Agregar notas de iteración 2 para notificaciones por cron, Slack y email en `README.md`.
-- [ ] T065 [P] [US6] Agregar pruebas de validación de owner y signal en `tests/unit/test_signals.py`.
+- [X] T062 [US6] Asegurar que los modelos de owner y signal incluyan Slack ID, email, preferencia de notificación, prioridad, estado de acción y estado de notificación en `src/b2g_gtm_toolkit/models/gtm.py`.
+- [X] T063 [US6] Incluir `B2G Owners` y `B2G Signals` en el manifiesto del esquema de Notion en `src/b2g_gtm_toolkit/notion/schema.py`.
+- [X] T064 [US6] Agregar notas de iteración 2 para notificaciones por cron, Slack y email en `README.md`.
+- [X] T065 [P] [US6] Agregar pruebas de validación de owner y signal en `tests/unit/test_signals.py`.
 
 **Checkpoint**: El toolkit puede almacenar datos listos para owner/signal, mientras que las notificaciones programadas reales siguen diferidas.
 
@@ -181,11 +181,11 @@
 
 **Propósito**: Hacer que los flujos sean utilizables por Codex y Claude Code desde el mismo repositorio.
 
-- [ ] T066 Crear script de instalación para carpetas de skills de Codex en `scripts/install-codex-skills.ps1`.
-- [ ] T067 Crear script de instalación para carpetas de skills de Claude Code en `scripts/install-claude-skills.ps1`.
-- [ ] T068 Agregar docs de uso multiagente en `docs/agent-usage.md`.
-- [ ] T069 Agregar un mapa de workflow que muestre ICP -> target accounts -> investigación SECOP -> sync con Notion -> salidas en `docs/workflows.md`.
-- [ ] T070 [P] Agregar archivos de entrada de ejemplo end-to-end en `examples/`.
+- [X] T066 Crear script de instalación para carpetas de skills de Codex en `scripts/install-codex-skills.ps1`.
+- [X] T067 Crear script de instalación para carpetas de skills de Claude Code en `scripts/install-claude-skills.ps1`.
+- [X] T068 Agregar docs de uso multiagente en `docs/agent-usage.md`.
+- [X] T069 Agregar un mapa de workflow que muestre ICP -> target accounts -> investigación SECOP -> sync con Notion -> salidas en `docs/workflows.md`.
+- [X] T070 [P] Agregar archivos de entrada de ejemplo end-to-end en `examples/`.
 
 **Checkpoint**: Un usuario puede instalar el skill pack para cualquiera de los dos agentes y seguir el workflow MVP documentado.
 
@@ -195,12 +195,12 @@
 
 **Propósito**: Validar el flujo MVP y ajustar la documentación antes de considerar completa la implementación.
 
-- [ ] T071 Agregar un smoke test de entrada ICP de ejemplo a salida de investigación SECOP usando fixtures en `tests/integration/test_mvp_smoke.py`.
-- [ ] T072 Agregar un smoke test de salida SECOP a payload dry-run de Notion en `tests/integration/test_research_to_notion.py`.
-- [ ] T073 Agregar un smoke test de fixture de oportunidad a contexto de salida AE en `tests/integration/test_output_workflow.py`.
-- [ ] T074 Ejecutar la suite completa de pruebas y corregir fallos.
-- [ ] T075 Revisar la claridad de los docs para usuario B2G en español primero en `README.md`, `docs/workflows.md` y archivos de skills.
-- [ ] T076 Marcar como completadas las tareas de implementación de este archivo a medida que se hagan.
+- [X] T071 Agregar un smoke test de entrada ICP de ejemplo a salida de investigación SECOP usando fixtures en `tests/integration/test_mvp_smoke.py`.
+- [X] T072 Agregar un smoke test de salida SECOP a payload dry-run de Notion en `tests/integration/test_research_to_notion.py`.
+- [X] T073 Agregar un smoke test de fixture de oportunidad a contexto de salida AE en `tests/integration/test_output_workflow.py`.
+- [X] T074 Ejecutar la suite completa de pruebas y corregir fallos.
+- [X] T075 Revisar la claridad de los docs para usuario B2G en español primero en `README.md`, `docs/workflows.md` y archivos de skills.
+- [X] T076 Marcar como completadas las tareas de implementación de este archivo a medida que se hagan.
 
 **Checkpoint**: MVP can be demonstrated locally without live SECOP or Notion dependencies by using fixtures and dry-run mode.
 

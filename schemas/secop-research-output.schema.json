@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://b2g-gtm-toolkit.local/schemas/secop-research-output.schema.json",
+  "title": "SECOP Research Output",
+  "type": "object",
+  "required": ["run_id", "generated_at", "input_summary", "records"],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "input_summary": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/research_record"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "research_record": {
+      "type": "object",
+      "required": [
+        "source_platform",
+        "source_dataset",
+        "source_record_id",
+        "buyer_name",
+        "object",
+        "provenance"
+      ],
+      "properties": {
+        "source_platform": {
+          "type": "string",
+          "enum": ["SECOP_I", "SECOP_II", "TVEC", "SECOP_INTEGRATED", "OCDS_JSON"]
+        },
+        "source_dataset": {
+          "type": "string"
+        },
+        "source_record_id": {
+          "type": "string"
+        },
+        "source_url": {
+          "type": ["string", "null"],
+          "format": "uri"
+        },
+        "process_id": {
+          "type": ["string", "null"]
+        },
+        "contract_id": {
+          "type": ["string", "null"]
+        },
+        "buyer_name": {
+          "type": "string"
+        },
+        "buyer_nit": {
+          "type": ["string", "null"]
+        },
+        "supplier_name": {
+          "type": ["string", "null"]
+        },
+        "supplier_nit": {
+          "type": ["string", "null"]
+        },
+        "object": {
+          "type": "string"
+        },
+        "modality": {
+          "type": ["string", "null"]
+        },
+        "status": {
+          "type": ["string", "null"]
+        },
+        "contract_value": {
+          "type": ["number", "null"]
+        },
+        "currency": {
+          "type": "string",
+          "default": "COP"
+        },
+        "publication_date": {
+          "type": ["string", "null"],
+          "format": "date"
+        },
+        "award_date": {
+          "type": ["string", "null"],
+          "format": "date"
+        },
+        "deadline": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "unspsc_codes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "matched_account_id": {
+          "type": ["string", "null"]
+        },
+        "relevance": {
+          "type": "object",
+          "required": ["score", "rationale"],
+          "properties": {
+            "score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "rationale": {
+              "type": "string"
+            },
+            "recommended_action": {
+              "type": ["string", "null"]
+            }
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "required": ["retrieved_at", "query", "raw_payload_hash"],
+          "properties": {
+            "retrieved_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "query": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "raw_payload_hash": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,56 @@
+{
+  "name": "ICP GobCloud - Alcaldias categoria 1-2 con secretaria TIC",
+  "business_profile_ref": "GobCloud SAS",
+  "target_entity_types": ["alcaldia", "gobernacion"],
+  "target_categories": ["categoria 1", "categoria 2", "departamental"],
+  "target_regions": ["Caldas", "Risaralda", "Quindio", "Cundinamarca", "Boyaca"],
+  "fit_criteria": [
+    "Categoria municipal 1 o 2, o gobernacion departamental",
+    "Secretaria o oficina TIC formal con responsable de transformacion digital",
+    "Plan Anual de Adquisiciones con rubros de gestion documental, PQRSD o modernizacion administrativa",
+    "Presupuesto de inversion superior a 500 SMMLV en TIC",
+    "Procesos SECOP II historicos en UNSPSC 81111800 o 81112200"
+  ],
+  "disqualifiers": [
+    "Categoria municipal 5 o 6 sin oficina TIC",
+    "EICE sin estructura administrativa formal",
+    "Procesos esperados que requieren polizas > 3.000 SMMLV"
+  ],
+  "buying_triggers": [
+    "Vencimiento de contrato vigente de gestion documental en los proximos 6-9 meses",
+    "Plan de Desarrollo con linea de modernizacion administrativa o gobierno digital",
+    "Hallazgos de la Contraloria sobre PQRSD o trazabilidad documental",
+    "Cambio de administracion (alcalde / gobernador) con prioridad TIC"
+  ],
+  "buying_committee_roles": [
+    {
+      "role": "Economic Buyer",
+      "typical_titles": ["Alcalde", "Gobernador", "Secretario de Hacienda"],
+      "influence": "Aprobacion presupuestal final"
+    },
+    {
+      "role": "Technical Buyer",
+      "typical_titles": ["Secretario TIC", "Director de Tecnologia", "Jefe de Sistemas"],
+      "influence": "Definicion tecnica y arquitectura"
+    },
+    {
+      "role": "User Champion",
+      "typical_titles": ["Secretario General", "Director de Servicio al Ciudadano", "Lider de PQRSD"],
+      "influence": "Adopcion y caso de uso operativo"
+    },
+    {
+      "role": "Procurement",
+      "typical_titles": ["Director Juridico", "Profesional de contratacion"],
+      "influence": "Modalidad de seleccion y pliegos"
+    }
+  ],
+  "observable_signals": [
+    "Publicacion de PAA con rubros TIC",
+    "Apertura de procesos SECOP II en UNSPSC 81111800",
+    "Convocatorias de consultoria para diagnostico documental",
+    "Auditorias publicadas con hallazgos en gestion documental"
+  ],
+  "confidence_level": "high",
+  "evidence_summary": "Validado contra 3 mejores clientes (Manizales, Pereira, Risaralda) y 2 patrones de descalificacion observados (categoria 6 Boyaca y EICE Sogamoso).",
+  "approval_status": "approved"
+}

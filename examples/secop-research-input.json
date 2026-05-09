@@ -1,0 +1,9 @@
+{
+  "task_type": "opportunity_discovery",
+  "entity_names": ["Alcaldia de Medellin"],
+  "entity_nits": ["890905211"],
+  "keywords": ["ERP", "contabilidad gubernamental"],
+  "datasets": ["secop_ii_procesos", "secop_ii_contratos"],
+  "result_limit": 50,
+  "page_size": 50
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://b2g-gtm-toolkit.local/schemas/secop-research-input.schema.json",
+  "title": "SECOP Research Input",
+  "type": "object",
+  "required": ["task_type"],
+  "properties": {
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "account_research",
+        "opportunity_discovery",
+        "purchase_history",
+        "supplier_discovery",
+        "bid_shortlist"
+      ]
+    },
+    "entity_names": { "type": "array", "items": { "type": "string" } },
+    "entity_nits": { "type": "array", "items": { "type": "string" } },
+    "municipalities": { "type": "array", "items": { "type": "string" } },
+    "departments": { "type": "array", "items": { "type": "string" } },
+    "keywords": { "type": "array", "items": { "type": "string" } },
+    "unspsc_codes": { "type": "array", "items": { "type": "string" } },
+    "modalities": { "type": "array", "items": { "type": "string" } },
+    "statuses": { "type": "array", "items": { "type": "string" } },
+    "suppliers": { "type": "array", "items": { "type": "string" } },
+    "date_from": { "type": ["string", "null"], "format": "date" },
+    "date_to": { "type": ["string", "null"], "format": "date" },
+    "min_value": { "type": ["number", "null"], "minimum": 0 },
+    "max_value": { "type": ["number", "null"], "minimum": 0 },
+    "datasets": { "type": "array", "items": { "type": "string" } },
+    "result_limit": { "type": "integer", "minimum": 1, "maximum": 10000, "default": 50 },
+    "page_size": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 200 },
+    "target_account_ref": { "type": ["string", "null"] },
+    "icp_ref": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

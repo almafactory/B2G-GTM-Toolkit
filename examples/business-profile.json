@@ -1,0 +1,45 @@
+{
+  "name": "GobCloud SAS",
+  "offer_summary": "Plataforma SaaS de gestion documental y radicacion electronica para alcaldias y gobernaciones, con conectores a SECOP II y firma digital certificada.",
+  "products_services": [
+    "Gestion documental electronica",
+    "Ventanilla unica de radicacion ciudadana",
+    "Modulo de PQRSD con trazabilidad",
+    "Conector SECOP II e integracion con plan anual de adquisiciones"
+  ],
+  "current_customers": [
+    "Alcaldia de Manizales",
+    "Alcaldia de Pereira",
+    "Gobernacion de Risaralda",
+    "Alcaldia de Armenia",
+    "Alcaldia de Tunja",
+    "Empresa de Servicios Publicos de Sogamoso ESP"
+  ],
+  "best_customers": [
+    "Alcaldia de Manizales (categoria 1, secretaria TIC madura, expansion a 3 modulos)",
+    "Gobernacion de Risaralda (renovo contrato a 3 anos, refiere a otras gobernaciones)",
+    "Alcaldia de Pereira (adopto el modulo PQRSD en menos de 60 dias)"
+  ],
+  "poor_fit_customers": [
+    "Alcaldia categoria 6 en Boyaca (sin presupuesto para licenciamiento anual, no adopto)",
+    "EICE departamental sin oficina TIC formal (proceso de implementacion paralizado 8 meses)"
+  ],
+  "competitors": [
+    "Mercurio (Servisoft)",
+    "Orfeo (open source SuperServicios)",
+    "Docunet"
+  ],
+  "company_stage": "growth",
+  "regions_served": [
+    "Caldas",
+    "Risaralda",
+    "Quindio",
+    "Boyaca",
+    "Cundinamarca"
+  ],
+  "constraints": [
+    "Equipo de implementacion de 6 personas: maximo 4 entidades nuevas en paralelo",
+    "Polizas de cumplimiento requieren respaldo bancario, limita procesos > 3.000 SMMLV",
+    "Sin oficina comercial fuera del Eje Cafetero"
+  ]
+}

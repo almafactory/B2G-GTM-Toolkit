@@ -1,0 +1,64 @@
+{
+  "icp_id": "icp-alcaldias-cat-1-2-tic",
+  "generated_at": "2026-05-09T12:00:00Z",
+  "source": "ICP GobCloud SAS + SECOP II 2024-2026 + DANE categorizacion municipal",
+  "count": 4,
+  "accounts": [
+    {
+      "name": "Alcaldia de Pereira",
+      "entity_type": "alcaldia",
+      "location": "Risaralda / Pereira",
+      "department": "Risaralda",
+      "municipality": "Pereira",
+      "category": "categoria 1",
+      "identifiers": {"nit": "891480030", "divipola": "66001"},
+      "fit_score": 88,
+      "fit_rationale": "Categoria 1, secretaria TIC consolidada, PAA 2026 con rubros gestion documental, cliente actual de GobCloud (referencia interna).",
+      "owner": "Juan Valencia",
+      "next_research_step": "Buscar procesos SECOP II 2024-2026 con UNSPSC 81111800 para detectar oportunidades de expansion.",
+      "research_status": "in_progress"
+    },
+    {
+      "name": "Alcaldia de Manizales",
+      "entity_type": "alcaldia",
+      "location": "Caldas / Manizales",
+      "department": "Caldas",
+      "municipality": "Manizales",
+      "category": "categoria 1",
+      "identifiers": {"nit": "890801053", "divipola": "17001"},
+      "fit_score": 84,
+      "fit_rationale": "Categoria 1, ciudad capital, secretaria TIC madura, presupuesto de inversion alto y plan de desarrollo con linea de modernizacion administrativa.",
+      "owner": "Juan Valencia",
+      "next_research_step": "Validar vencimiento del contrato vigente de gestion documental y mapear supervisor.",
+      "research_status": "not_started"
+    },
+    {
+      "name": "Gobernacion del Quindio",
+      "entity_type": "gobernacion",
+      "location": "Quindio / Armenia",
+      "department": "Quindio",
+      "municipality": "Armenia",
+      "category": "departamental",
+      "identifiers": {"nit": "890000464", "divipola": "63"},
+      "fit_score": 72,
+      "fit_rationale": "Gobernacion en region servida (Eje Cafetero), referenciable desde Risaralda; falta confirmar plan de adquisiciones 2026 con rubros TIC.",
+      "owner": "Juan Valencia",
+      "next_research_step": "Descargar PAA 2026 desde portal de transparencia y revisar rubros de modernizacion.",
+      "research_status": "not_started"
+    },
+    {
+      "name": "Alcaldia de Armenia",
+      "entity_type": "alcaldia",
+      "location": "Quindio / Armenia",
+      "department": "Quindio",
+      "municipality": "Armenia",
+      "category": "categoria 2",
+      "identifiers": {"nit": "890000464", "divipola": "63001"},
+      "fit_score": 68,
+      "fit_rationale": "Categoria 2, capital departamental, ya es cliente actual de GobCloud para PQRSD. Oportunidad de upsell a gestion documental completa.",
+      "owner": "Juan Valencia",
+      "next_research_step": "Confirmar adopcion actual y agendar conversacion con secretaria TIC sobre expansion.",
+      "research_status": "in_progress"
+    }
+  ]
+}
