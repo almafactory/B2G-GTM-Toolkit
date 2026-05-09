@@ -1,169 +1,169 @@
-# Feature Specification: B2G-GTM-Toolkit
+# Especificación de la funcionalidad: B2G-GTM-Toolkit
 
-**Feature ID**: `001-b2g-gtm-toolkit`
-**Created**: 2026-05-09
-**Status**: Draft
+**ID de la funcionalidad**: `001-b2g-gtm-toolkit`
+**Creado**: 2026-05-09
+**Estado**: Draft
 
-## User Scenarios & Testing
+## Escenarios de usuario y pruebas
 
-### User Story 1 - Define a B2G ICP From Real Customer Context (Priority: P1)
+### Historia de usuario 1 - Definir un ICP B2G a partir de contexto real de cliente (Prioridad: P1)
 
-A B2G contractor or GTM team member provides baseline business context, current clients, competitors, offer details, best customers, poor-fit customers, and market assumptions. The toolkit guides the agent through the right questions, uses the existing GTM skills as the baseline methodology, and produces a practical Ideal Customer Profile for Colombian public-sector buyers.
+Un contratista B2G o miembro de un equipo GTM proporciona el contexto base del negocio, clientes actuales, competidores, detalles de la oferta, mejores clientes, clientes de mal ajuste e hipótesis de mercado. El toolkit guía al agente con las preguntas correctas, usa las skills GTM existentes como metodología base y produce un Ideal Customer Profile práctico para compradores del sector público colombiano.
 
-**Why this priority**: The ICP is the foundation for every downstream workflow. If the system does not identify which public entities are worth pursuing, SECOP research, outreach, proposals, and meeting preparation will produce generic or low-value outputs.
+**Por qué esta prioridad**: El ICP es la base de todo el flujo posterior. Si el sistema no identifica qué entidades públicas vale la pena perseguir, la investigación en SECOP, la prospección, las propuestas y la preparación de reuniones producirán salidas genéricas o de bajo valor.
 
-**Independent Test**: Provide a sample contractor profile with 5-10 clients and verify that the toolkit produces an ICP with target entity types, fit criteria, disqualifiers, buying triggers, target roles, and confidence level.
+**Prueba independiente**: Proporcionar un perfil de contratista de ejemplo con 5-10 clientes y verificar que el toolkit produzca un ICP con tipos de entidad objetivo, criterios de ajuste, descalificadores, disparadores de compra, roles objetivo y nivel de confianza.
 
-**Acceptance Scenarios**:
+**Escenarios de aceptación**:
 
-1. **Given** a user with partial but usable customer and offer context, **When** they start the ICP workflow, **Then** the toolkit asks for missing baseline inputs before producing the ICP.
-2. **Given** a user with prior clients such as alcaldias or gobernaciones, **When** the ICP workflow completes, **Then** the output identifies target public-entity segments and explains why they are a good fit.
-3. **Given** weak or insufficient customer evidence, **When** the toolkit produces the ICP, **Then** it labels the ICP as a hypothesis and lists the evidence still needed to validate it.
-
----
-
-### User Story 2 - Build a Target Account List From the ICP (Priority: P1)
-
-A GTM user takes the ICP output and asks the toolkit to identify public entities and accounts that match the target profile. The toolkit turns ICP criteria into a structured target-account list that can guide SECOP research and commercial prioritization.
-
-**Why this priority**: Users need an actionable list before they can research contracts, buying history, upcoming opportunities, and account-specific messages.
-
-**Independent Test**: Use a completed ICP and verify that the toolkit returns a prioritized account list with fit rationale, account type, region/category when available, and next research action.
-
-**Acceptance Scenarios**:
-
-1. **Given** a completed ICP, **When** the user starts prospecting, **Then** the toolkit produces accounts grouped or ranked by fit.
-2. **Given** a target account candidate, **When** the account lacks enough evidence to match the ICP, **Then** the toolkit marks it as uncertain instead of treating it as qualified.
-3. **Given** target-account criteria involving public-entity type, geography, category, or buying pattern, **When** the list is created, **Then** each account includes the reason it belongs in the list.
+1. **Dado** un usuario con contexto parcial pero utilizable de clientes y oferta, **cuando** inicia el flujo de ICP, **entonces** el toolkit solicita las entradas base faltantes antes de producir el ICP.
+2. **Dado** un usuario con clientes previos como alcaldías o gobernaciones, **cuando** se completa el flujo de ICP, **entonces** la salida identifica segmentos de entidad pública objetivo y explica por qué encajan bien.
+3. **Dado** evidencia de cliente débil o insuficiente, **cuando** el toolkit produce el ICP, **entonces** lo etiqueta como hipótesis y lista la evidencia que aún falta para validarlo.
 
 ---
 
-### User Story 3 - Research SECOP Opportunities and Buying History (Priority: P1)
+### Historia de usuario 2 - Construir una lista de cuentas objetivo a partir del ICP (Prioridad: P1)
 
-A contractor wants to find tenders, contracts, and opportunities in SECOP that are relevant to their ICP and offer. The toolkit helps run repeatable research against SECOP data, captures historical deals and current opportunities, and transforms the findings into structured account and opportunity intelligence.
+Un usuario GTM toma la salida del ICP y le pide al toolkit que identifique entidades públicas y cuentas que coincidan con el perfil objetivo. El toolkit convierte los criterios del ICP en una lista estructurada de cuentas objetivo que puede guiar la investigación en SECOP y la priorización comercial.
 
-**Why this priority**: The core value of the product is reducing manual SECOP research and helping contractors identify more relevant public-sector opportunities each month.
+**Por qué esta prioridad**: Los usuarios necesitan una lista accionable antes de poder investigar contratos, historial de compra, oportunidades próximas y mensajes específicos por cuenta.
 
-**Independent Test**: Provide a target account or ICP search criteria and verify that the toolkit produces structured research outputs for contracts, opportunities, buyers, suppliers, dates, values, relevance rationale, and recommended next action.
+**Prueba independiente**: Usar un ICP completado y verificar que el toolkit devuelva una lista priorizada de cuentas con justificación de ajuste, tipo de cuenta, región/categoría cuando esté disponible y siguiente acción de investigación.
 
-**Acceptance Scenarios**:
+**Escenarios de aceptación**:
 
-1. **Given** a target-account list, **When** SECOP research runs, **Then** the toolkit records relevant historical contracts and active or recent opportunities for each account where data exists.
-2. **Given** an opportunity found in SECOP, **When** the toolkit evaluates it, **Then** it summarizes why it is relevant or not relevant to the user's offer.
-3. **Given** repeated research needs, **When** a user provides the same inputs over time, **Then** the toolkit supports repeatable collection without requiring the agent to manually browse and copy SECOP data.
-
----
-
-### User Story 4 - Store GTM Intelligence in Notion (Priority: P1)
-
-A team wants a persistent GTM operating system where ICPs, accounts, SECOP findings, opportunities, buying signals, outreach plans, meeting briefs, proposals, and ownership are stored in structured Notion databases.
-
-**Why this priority**: The output must be reusable by sales teams, entrepreneurs, and account executives. Without structured storage, the toolkit only creates one-off documents and cannot support recurring workflows.
-
-**Independent Test**: Run the workflow for one ICP and three accounts, then verify that the resulting records can be found in the expected Notion databases with linked account, opportunity, and research data.
-
-**Acceptance Scenarios**:
-
-1. **Given** a workspace without the required Notion structure, **When** the user starts a workflow that needs storage, **Then** the toolkit verifies whether the required databases exist before saving research.
-2. **Given** researched SECOP data, **When** the data is stored, **Then** it is linked to the relevant ICP, target account, opportunity, and responsible person when known.
-3. **Given** duplicate or previously researched records, **When** the toolkit saves new findings, **Then** it avoids creating confusing duplicate records and preserves the latest known status.
+1. **Dado** un ICP completado, **cuando** el usuario inicia la prospección, **entonces** el toolkit produce cuentas agrupadas o rankeadas por ajuste.
+2. **Dado** un candidato a cuenta objetivo, **cuando** la cuenta no tiene suficiente evidencia para coincidir con el ICP, **entonces** el toolkit la marca como incierta en lugar de tratarla como calificada.
+3. **Dado** criterios de cuenta objetivo que involucren tipo de entidad pública, geografía, categoría o patrón de compra, **cuando** se crea la lista, **entonces** cada cuenta incluye la razón por la que pertenece a la lista.
 
 ---
 
-### User Story 5 - Generate Account Executive Work Products (Priority: P2)
+### Historia de usuario 3 - Investigar oportunidades SECOP e historial de compra (Prioridad: P1)
 
-An account executive uses saved account and opportunity intelligence to create outreach campaigns, meeting preparation briefs, proposal briefs, and business cases for public-sector opportunities.
+Un contratista quiere encontrar licitaciones, contratos y oportunidades en SECOP que sean relevantes para su ICP y su oferta. El toolkit ayuda a ejecutar investigaciones repetibles sobre datos de SECOP, captura contratos históricos y oportunidades actuales, y transforma los hallazgos en inteligencia estructurada de cuentas y oportunidades.
 
-**Why this priority**: After research is captured, the next value comes from converting that intelligence into sales execution assets that save time and improve quality.
+**Por qué esta prioridad**: El valor central del producto es reducir la investigación manual de SECOP y ayudar a los contratistas a identificar oportunidades del sector público más relevantes cada mes.
 
-**Independent Test**: Select one researched opportunity and verify that the toolkit creates an outreach sequence, a meeting prep brief, and a proposal/business-case brief using the stored research as source material.
+**Prueba independiente**: Proporcionar una cuenta objetivo o criterios de búsqueda del ICP y verificar que el toolkit produzca salidas de investigación estructuradas para contratos, oportunidades, compradores, proveedores, fechas, valores, justificación de relevancia y siguiente acción recomendada.
 
-**Acceptance Scenarios**:
+**Escenarios de aceptación**:
 
-1. **Given** an account with SECOP buying history, **When** the user asks for outreach, **Then** the toolkit creates a campaign tied to the account's needs, historical purchasing behavior, and likely buying triggers.
-2. **Given** an upcoming meeting, **When** the user asks for preparation, **Then** the toolkit produces a concise brief with account context, opportunity context, key questions, likely objections, and recommended ask.
-3. **Given** a relevant tender opportunity, **When** the user asks for proposal support, **Then** the toolkit produces a brief that helps evaluate fit, requirements, positioning, and next steps.
-
----
-
-### User Story 6 - Monitor Buying Signals and Notify Owners (Priority: P2)
-
-A GTM team wants ongoing enrichment of leads, detection of buying signals, and notifications to the responsible owner when a relevant opportunity or account signal appears.
-
-**Why this priority**: B2G opportunities are time-sensitive. The toolkit should help teams act on signals instead of relying only on manual periodic research.
-
-**Independent Test**: Configure a sample target account and responsible owner, simulate or detect a new relevant signal, and verify that the system records the signal and notifies the owner with recommended action.
-
-**Acceptance Scenarios**:
-
-1. **Given** target accounts with owners, **When** new relevant SECOP opportunities or buying signals appear, **Then** the toolkit creates a signal record and identifies the responsible owner.
-2. **Given** a signal with weak relevance, **When** it is evaluated, **Then** the toolkit marks it lower priority or suppresses unnecessary notification.
-3. **Given** recurring enrichment, **When** the toolkit updates account data, **Then** it preserves past research and highlights what changed.
+1. **Dada** una lista de cuentas objetivo, **cuando** corre la investigación SECOP, **entonces** el toolkit registra contratos históricos relevantes y oportunidades activas o recientes para cada cuenta donde existan datos.
+2. **Dada** una oportunidad encontrada en SECOP, **cuando** el toolkit la evalúa, **entonces** resume por qué es relevante o no relevante para la oferta del usuario.
+3. **Dadas** necesidades repetidas de investigación, **cuando** un usuario proporciona las mismas entradas a lo largo del tiempo, **entonces** el toolkit soporta recolección repetible sin requerir que el agente navegue y copie manualmente datos de SECOP.
 
 ---
 
-### Edge Cases
+### Historia de usuario 4 - Guardar inteligencia GTM en Notion (Prioridad: P1)
 
-- The user has no existing clients and can only provide dream accounts or assumptions.
-- The user's best customers do not map cleanly to public-sector entity categories.
-- SECOP data is incomplete, duplicated, stale, or inconsistent across records.
-- Multiple opportunities appear relevant but have conflicting timelines, requirements, or budget signals.
-- A Notion workspace is missing required databases or has a similar but incompatible schema.
-- The same public entity appears under different names or spellings.
-- A lead owner is missing, inactive, or responsible for too many accounts.
-- A tender is relevant commercially but impossible to pursue because of timing, eligibility, documentation, or qualification constraints.
+Un equipo quiere un sistema operativo GTM persistente donde ICPs, cuentas, hallazgos SECOP, oportunidades, señales de compra, planes de outreach, briefs de reuniones, propuestas y responsables se almacenen en bases de datos estructuradas de Notion.
 
-## Requirements
+**Por qué esta prioridad**: La salida debe poder reutilizarse por equipos de ventas, emprendedores y account executives. Sin almacenamiento estructurado, el toolkit solo crea documentos aislados y no puede soportar flujos recurrentes.
 
-### Functional Requirements
+**Prueba independiente**: Ejecutar el flujo para un ICP y tres cuentas, y luego verificar que los registros resultantes puedan encontrarse en las bases de datos de Notion esperadas con los datos de cuenta, oportunidad e investigación vinculados.
 
-- **FR-001**: System MUST guide users through baseline GTM inputs required to define an ICP, including offer, current clients, best customers, worst customers, competitors, target market assumptions, and company stage.
-- **FR-002**: System MUST use the methodology represented by the sales skills in `E:\skills\ventas` as the baseline for ICP definition, prospecting, account research, qualification, outreach, meeting preparation, and signal-based outbound.
-- **FR-003**: System MUST produce an ICP briefing that includes firmographic/public-entity fit criteria, situational criteria, buying triggers, buying committee roles, disqualifiers, observable signals, and confidence level.
-- **FR-004**: System MUST convert the ICP into a target-account list of public-sector entities or account segments relevant to Colombian B2G sales.
-- **FR-005**: System MUST support research workflows that collect SECOP buying history, contracts, suppliers, opportunity details, dates, values, and relevance rationale for target accounts and opportunities.
-- **FR-006**: System MUST distinguish between active opportunities, historical contracts, account-level intelligence, and buying signals.
-- **FR-007**: System MUST structure research outputs so they can be reused by account executives for outreach, meetings, proposals, and business cases.
-- **FR-008**: System MUST verify that required Notion databases and relationships exist before saving structured GTM intelligence.
-- **FR-009**: System MUST store or update ICPs, accounts, opportunities, SECOP research records, signals, outreach assets, meeting briefs, proposal briefs, and responsible owners in Notion.
-- **FR-010**: System MUST detect and handle duplicate accounts, duplicate opportunities, or repeated SECOP findings in a way that keeps the workspace understandable.
-- **FR-011**: System MUST generate outreach campaign outputs from stored account, opportunity, and signal intelligence.
-- **FR-012**: System MUST generate meeting preparation briefs from stored account and opportunity intelligence.
-- **FR-013**: System MUST generate proposal or business-case briefs for selected SECOP opportunities.
-- **FR-014**: System MUST support recurring enrichment of lead and account data.
-- **FR-015**: System MUST support recurring buying-signal detection and notify the responsible owner when a relevant signal is found.
-- **FR-016**: System MUST label uncertain, incomplete, or low-confidence outputs instead of presenting them as validated facts.
-- **FR-017**: System MUST preserve source references or provenance for SECOP-derived findings so users can trace why an opportunity or account was recommended.
-- **FR-018**: System MUST allow the user to review and approve key outputs before they are used for downstream workflows.
-- **FR-019**: System MUST support Spanish-language B2G workflows and outputs, with English support where useful for tool commands or technical setup.
-- **FR-020**: System MUST provide a toolkit-style setup that can be installed or reused locally by AI coding agents such as Codex or Claude Code.
-- **FR-021**: System MUST [NEEDS CLARIFICATION: define which Notion workspace/database naming conventions should be created by default].
-- **FR-022**: System MUST [NEEDS CLARIFICATION: define the exact notification channels for responsible owners, such as Notion mentions, email, Slack, or another channel].
-- **FR-023**: System MUST [NEEDS CLARIFICATION: define whether the first release targets only Colombia SECOP data or should support other public procurement sources later].
+**Escenarios de aceptación**:
 
-### Key Entities
+1. **Dado** un workspace sin la estructura requerida de Notion, **cuando** el usuario inicia un flujo que necesita almacenamiento, **entonces** el toolkit verifica si existen las bases de datos requeridas antes de guardar la investigación.
+2. **Dado** datos SECOP investigados, **cuando** se almacenan, **entonces** quedan vinculados al ICP relevante, a la cuenta objetivo, a la oportunidad y a la persona responsable cuando se conoce.
+3. **Dado** registros duplicados o ya investigados, **cuando** el toolkit guarda nuevos hallazgos, **entonces** evita crear duplicados confusos y conserva el último estado conocido.
 
-- **Business Profile**: The contractor or B2G company using the toolkit, including what it sells, current customers, competitors, strengths, constraints, and market assumptions.
-- **ICP**: The ideal public-sector customer profile derived from customer context and research, including target entity types, fit rules, disqualifiers, buying triggers, and confidence level.
-- **Target Account**: A public entity or account segment that matches the ICP and should be researched or pursued.
-- **SECOP Research Record**: A structured finding from SECOP, including contract or opportunity information, source reference, relevance rationale, and relationship to an account.
-- **Opportunity**: A specific tender, procurement process, contract opportunity, or actionable commercial event that may justify outreach or proposal work.
-- **Buying Signal**: A relevant change or event indicating a target account may be worth contacting or monitoring.
-- **Responsible Owner**: The person accountable for acting on an account, opportunity, or signal.
-- **Outreach Campaign**: A planned set of messages or actions based on account intelligence and buying signals.
-- **Meeting Prep Brief**: A concise preparation artifact for an account or opportunity meeting.
-- **Proposal / Business Case Brief**: A structured artifact that helps evaluate, position, and prepare for a public-sector opportunity.
-- **Notion GTM Workspace**: The linked database system where toolkit outputs are stored, related, and updated.
+---
 
-## Success Criteria
+### Historia de usuario 5 - Generar entregables para account executives (Prioridad: P2)
 
-### Measurable Outcomes
+Un account executive usa la inteligencia guardada de cuentas y oportunidades para crear campañas de outreach, briefs de preparación de reuniones, briefs de propuesta y business cases para oportunidades del sector público.
 
-- **SC-001**: A user can complete the baseline ICP workflow and receive an ICP briefing without manually deciding which GTM questions to ask.
-- **SC-002**: The toolkit can transform one ICP into a prioritized account list with clear fit rationale.
-- **SC-003**: For a selected target account or opportunity, the toolkit can produce structured SECOP research records that are reusable in later workflows.
-- **SC-004**: Required Notion databases can be verified or prepared before research outputs are stored.
-- **SC-005**: A saved opportunity can be used to generate at least three account-executive outputs: outreach, meeting prep, and proposal/business-case brief.
-- **SC-006**: Recurring enrichment can identify a new or changed signal and route it to a responsible owner.
-- **SC-007**: Users can process more relevant B2G opportunities per month than they could with fully manual SECOP research and document preparation.
-- **SC-008**: Users can trace each recommended account, opportunity, or signal back to its underlying evidence or source rationale.
+**Por qué esta prioridad**: Después de capturar la investigación, el siguiente valor proviene de convertir esa inteligencia en activos de ejecución comercial que ahorran tiempo y mejoran la calidad.
+
+**Prueba independiente**: Seleccionar una oportunidad investigada y verificar que el toolkit cree una secuencia de outreach, un brief de preparación de reunión y un brief de propuesta/business case usando la investigación almacenada como material de origen.
+
+**Escenarios de aceptación**:
+
+1. **Dada** una cuenta con historial de compra en SECOP, **cuando** el usuario pide outreach, **entonces** el toolkit crea una campaña ligada a las necesidades de la cuenta, el comportamiento histórico de compra y los posibles disparadores de compra.
+2. **Dada** una reunión próxima, **cuando** el usuario pide preparación, **entonces** el toolkit produce un brief conciso con contexto de cuenta, contexto de oportunidad, preguntas clave, posibles objeciones y el ask recomendado.
+3. **Dada** una oportunidad de licitación relevante, **cuando** el usuario pide apoyo para propuesta, **entonces** el toolkit produce un brief que ayude a evaluar ajuste, requisitos, posicionamiento y siguientes pasos.
+
+---
+
+### Historia de usuario 6 - Monitorear señales de compra y notificar a los responsables (Prioridad: P2)
+
+Un equipo GTM quiere enriquecimiento continuo de leads, detección de señales de compra y notificaciones al responsable cuando aparezca una oportunidad o señal de cuenta relevante.
+
+**Por qué esta prioridad**: Las oportunidades B2G son sensibles al tiempo. El toolkit debería ayudar a los equipos a actuar sobre señales en lugar de depender solo de investigación manual periódica.
+
+**Prueba independiente**: Configurar una cuenta objetivo de ejemplo y un responsable, simular o detectar una nueva señal relevante y verificar que el sistema registre la señal y notifique al responsable con la acción recomendada.
+
+**Escenarios de aceptación**:
+
+1. **Dadas** cuentas objetivo con responsables, **cuando** aparecen nuevas oportunidades SECOP o señales de compra relevantes, **entonces** el toolkit crea un registro de señal e identifica al responsable.
+2. **Dada** una señal con baja relevancia, **cuando** se evalúa, **entonces** el toolkit la marca con menor prioridad o suprime la notificación innecesaria.
+3. **Dado** un enriquecimiento recurrente, **cuando** el toolkit actualiza datos de cuenta, **entonces** preserva la investigación previa y resalta lo que cambió.
+
+---
+
+### Casos límite
+
+- El usuario no tiene clientes existentes y solo puede proporcionar cuentas ideales o suposiciones.
+- Los mejores clientes del usuario no se mapean de forma limpia a categorías de entidades del sector público.
+- Los datos de SECOP están incompletos, duplicados, desactualizados o son inconsistentes entre registros.
+- Varias oportunidades parecen relevantes pero tienen cronogramas, requisitos o señales de presupuesto conflictivos.
+- Un workspace de Notion no tiene las bases de datos requeridas o tiene un esquema similar pero incompatible.
+- La misma entidad pública aparece con nombres o escrituras diferentes.
+- Un responsable de lead falta, está inactivo o tiene demasiadas cuentas.
+- Una licitación es comercialmente relevante pero imposible de perseguir por tiempo, elegibilidad, documentación o restricciones de calificación.
+
+## Requisitos
+
+### Requisitos funcionales
+
+- **FR-001**: El sistema DEBE guiar a los usuarios a través de las entradas GTM base necesarias para definir un ICP, incluyendo oferta, clientes actuales, mejores clientes, peores clientes, competidores, supuestos del mercado objetivo y etapa de la empresa.
+- **FR-002**: El sistema DEBE usar la metodología representada por las skills de ventas en `E:\skills\ventas` como base para la definición de ICP, prospección, investigación de cuentas, calificación, outreach, preparación de reuniones y outbound basado en señales.
+- **FR-003**: El sistema DEBE producir un brief de ICP que incluya criterios de ajuste firmográfico/de entidad pública, criterios situacionales, disparadores de compra, roles del comité de compra, descalificadores, señales observables y nivel de confianza.
+- **FR-004**: El sistema DEBE convertir el ICP en una lista de cuentas objetivo de entidades del sector público o segmentos de cuenta relevantes para ventas B2G en Colombia.
+- **FR-005**: El sistema DEBE soportar flujos de investigación que recojan historial de compra de SECOP, contratos, proveedores, detalles de oportunidad, fechas, valores y justificación de relevancia para cuentas y oportunidades objetivo.
+- **FR-006**: El sistema DEBE distinguir entre oportunidades activas, contratos históricos, inteligencia a nivel de cuenta y señales de compra.
+- **FR-007**: El sistema DEBE estructurar las salidas de investigación para que puedan reutilizarlas los account executives en outreach, reuniones, propuestas y business cases.
+- **FR-008**: El sistema DEBE verificar que existan las bases de datos y relaciones requeridas de Notion antes de guardar inteligencia GTM estructurada.
+- **FR-009**: El sistema DEBE almacenar o actualizar ICPs, cuentas, oportunidades, registros de investigación SECOP, señales, assets de outreach, briefs de reuniones, briefs de propuesta y responsables en Notion.
+- **FR-010**: El sistema DEBE detectar y manejar cuentas duplicadas, oportunidades duplicadas o hallazgos SECOP repetidos de forma que mantenga el workspace comprensible.
+- **FR-011**: El sistema DEBE generar salidas de campañas de outreach a partir de la inteligencia almacenada de cuenta, oportunidad y señal.
+- **FR-012**: El sistema DEBE generar briefs de preparación de reuniones a partir de la inteligencia almacenada de cuenta y oportunidad.
+- **FR-013**: El sistema DEBE generar briefs de propuesta o business case para oportunidades SECOP seleccionadas.
+- **FR-014**: El sistema DEBE soportar enriquecimiento recurrente de datos de leads y cuentas.
+- **FR-015**: El sistema DEBE soportar detección recurrente de señales de compra y notificar al responsable cuando se encuentre una señal relevante.
+- **FR-016**: El sistema DEBE etiquetar salidas inciertas, incompletas o de baja confianza en lugar de presentarlas como hechos validados.
+- **FR-017**: El sistema DEBE preservar referencias de fuente o provenance para hallazgos derivados de SECOP para que los usuarios puedan rastrear por qué se recomendó una oportunidad o cuenta.
+- **FR-018**: El sistema DEBE permitir que el usuario revise y apruebe salidas clave antes de que se usen en flujos posteriores.
+- **FR-019**: El sistema DEBE soportar flujos y salidas en español para B2G, con soporte en inglés donde sea útil para comandos de la herramienta o configuración técnica.
+- **FR-020**: El sistema DEBE proporcionar una configuración estilo toolkit que pueda instalarse o reutilizarse localmente por agentes de codificación de IA como Codex o Claude Code.
+- **FR-021**: El sistema DEBE proporcionar un esquema por defecto del workspace GTM de Notion que pueda verificarse, crearse o iterarse más adelante sin bloquear la primera implementación.
+- **FR-022**: El sistema DEBE soportar Slack y email como canales de notificación planificados para los responsables.
+- **FR-023**: El sistema DEBE acotar la primera entrega a datos de SECOP colombiano dejando espacio para sumar otras fuentes de contratación pública más adelante.
+
+### Entidades clave
+
+- **Business Profile**: La empresa contratista o B2G que usa el toolkit, incluyendo qué vende, clientes actuales, competidores, fortalezas, restricciones e hipótesis de mercado.
+- **ICP**: El perfil ideal de cliente del sector público derivado del contexto de clientes e investigación, incluyendo tipos de entidad objetivo, reglas de ajuste, descalificadores, disparadores de compra y nivel de confianza.
+- **Target Account**: Una entidad pública o segmento de cuenta que coincide con el ICP y debe ser investigada o perseguida.
+- **SECOP Research Record**: Un hallazgo estructurado de SECOP, incluyendo información de contrato u oportunidad, referencia de fuente, justificación de relevancia y relación con una cuenta.
+- **Opportunity**: Una licitación, proceso de compra, oportunidad de contrato o evento comercial accionable específico que pueda justificar outreach o trabajo de propuesta.
+- **Buying Signal**: Un cambio o evento relevante que indique que una cuenta objetivo puede valer la pena contactar o monitorear.
+- **Responsible Owner**: La persona responsable de actuar sobre una cuenta, oportunidad o señal.
+- **Outreach Campaign**: Un conjunto planificado de mensajes o acciones basado en inteligencia de cuenta y señales de compra.
+- **Meeting Prep Brief**: Un artefacto breve de preparación para una reunión de cuenta u oportunidad.
+- **Proposal / Business Case Brief**: Un artefacto estructurado que ayuda a evaluar, posicionar y preparar una oportunidad del sector público.
+- **Notion GTM Workspace**: El sistema de bases de datos enlazadas donde se almacenan, relacionan y actualizan las salidas del toolkit.
+
+## Criterios de éxito
+
+### Resultados medibles
+
+- **SC-001**: Un usuario puede completar el flujo base de ICP y recibir un brief de ICP sin decidir manualmente qué preguntas GTM hacer.
+- **SC-002**: El toolkit puede transformar un ICP en una lista priorizada de cuentas con una justificación clara de ajuste.
+- **SC-003**: Para una cuenta objetivo u oportunidad seleccionada, el toolkit puede producir registros estructurados de investigación SECOP reutilizables en flujos posteriores.
+- **SC-004**: Las bases de datos requeridas de Notion pueden verificarse o prepararse antes de almacenar las salidas de investigación.
+- **SC-005**: Una oportunidad guardada puede usarse para generar al menos tres salidas para account executives: outreach, preparación de reunión y brief de propuesta/business case.
+- **SC-006**: El enriquecimiento recurrente puede identificar una señal nueva o cambiada y enrutarla a un responsable.
+- **SC-007**: Los usuarios pueden procesar más oportunidades B2G relevantes por mes que con investigación SECOP y preparación documental totalmente manual.
+- **SC-008**: Los usuarios pueden rastrear cada cuenta, oportunidad o señal recomendada hasta su evidencia subyacente o su justificación de origen.

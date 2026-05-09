@@ -1,6 +1,5 @@
 # SECOP Tool
 
-Spec-driven workspace for a B2G GTM toolkit focused on Colombian public-sector opportunities in SECOP.
+Espacio de trabajo guiado por especificaciones para un toolkit B2G GTM enfocado en oportunidades del sector público colombiano en SECOP.
 
-Current project artifacts live under `.sdd/specs/001-b2g-gtm-toolkit/`.
-
+Los artefactos actuales del proyecto viven en `.sdd/specs/001-b2g-gtm-toolkit/`.
