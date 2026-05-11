@@ -190,6 +190,10 @@ def default_workspace_manifest() -> NotionWorkspaceManifest:
                 type=P.select,
                 options=["outreach", "meeting_prep", "proposal_brief", "business_case"],
             ),
+            NotionPropertySpec(name="Output Key", type=P.rich_text),
+            NotionPropertySpec(name="Source Evidence Hash", type=P.rich_text),
+            NotionPropertySpec(name="Stage", type=P.select),
+            NotionPropertySpec(name="Channel", type=P.select, options=["email", "linkedin", "meeting", "proposal"]),
             NotionPropertySpec(name="Content", type=P.rich_text),
             NotionPropertySpec(name="Source Summary", type=P.rich_text),
             NotionPropertySpec(
@@ -197,6 +201,7 @@ def default_workspace_manifest() -> NotionWorkspaceManifest:
                 type=P.select,
                 options=["draft", "needs_review", "approved", "rejected", "archived"],
             ),
+            NotionPropertySpec(name="Owner", type=P.relation, relation_database="B2G Owners"),
             NotionPropertySpec(name="Target Account", type=P.relation, relation_database="B2G Target Accounts"),
             NotionPropertySpec(name="Opportunity", type=P.relation, relation_database="B2G Opportunities"),
             NotionPropertySpec(name="Research Records", type=P.relation, relation_database="B2G SECOP Research"),

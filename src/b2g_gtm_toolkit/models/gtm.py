@@ -193,11 +193,16 @@ class GtmOutput(BaseModel):
     type: GtmOutputType
     title: str = Field(min_length=1)
     content: str
+    output_key: Optional[str] = None
+    source_evidence_hash: Optional[str] = None
+    stage: Optional[str] = None
+    channel: Optional[str] = None
     source_summary: Optional[str] = None
     approval_status: ApprovalStatus = ApprovalStatus.draft
     created_for: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    owner_ref: Optional[str] = None
     target_account_ref: Optional[str] = None
     opportunity_ref: Optional[str] = None
     research_record_refs: List[str] = Field(default_factory=list)

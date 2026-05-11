@@ -5,14 +5,19 @@ import re
 from typing import Any, Dict, List, Optional, Protocol
 
 from b2g_gtm_toolkit.models.business import BusinessProfile, ICP
-from b2g_gtm_toolkit.models.gtm import TargetAccount
+from b2g_gtm_toolkit.models.gtm import GtmOutput, TargetAccount
 from b2g_gtm_toolkit.models.secop import SecopNormalizedRecord
 from b2g_gtm_toolkit.utils.ids import normalize_text
 
 
 class NotionWriterLike(Protocol):
     def query_database(self, database_id: str, filter: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]: ...
-    def create_page(self, database_id: str, properties: Dict[str, Any]) -> Dict[str, Any]: ...
+    def create_page(
+        self,
+        database_id: str,
+        properties: Dict[str, Any],
+        children: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]: ...
     def update_page(self, page_id: str, properties: Dict[str, Any]) -> Dict[str, Any]: ...
 
 
@@ -267,6 +272,7 @@ def upsert_page(
     properties: Dict[str, Any],
     dedupe_key: Dict[str, Any],
     client: Optional[NotionWriterLike] = None,
+    children: Optional[List[Dict[str, Any]]] = None,
 ) -> WriteResult:
     if client is None:
         return WriteResult(action="dry_run_create", page_id=None, properties=properties)
@@ -274,8 +280,13 @@ def upsert_page(
     if existing:
         page_id = existing[0].get("id")
         client.update_page(page_id, properties)
+        if children and hasattr(client, "append_page_children"):
+            client.append_page_children(page_id, children)  # type: ignore[attr-defined]
         return WriteResult(action="update", page_id=page_id, properties=properties)
-    created = client.create_page(database_id, properties)
+    if children:
+        created = client.create_page(database_id, properties, children)
+    else:
+        created = client.create_page(database_id, properties)
     return WriteResult(action="create", page_id=created.get("id"), properties=properties)
 
 
@@ -297,6 +308,26 @@ def dedupe_filter_for_secop(record: SecopNormalizedRecord) -> Dict[str, Any]:
             {"property": "Source Record ID", "rich_text": {"equals": record.source_record_id}},
         ]
     }
+
+
+def upsert_gtm_output(
+    database_id: str,
+    output: GtmOutput,
+    client: Optional[NotionWriterLike] = None,
+) -> WriteResult:
+    from b2g_gtm_toolkit.notion.output_mapper import (
+        dedupe_filter_for_gtm_output,
+        gtm_output_body_children,
+        gtm_output_properties,
+    )
+
+    return upsert_page(
+        database_id,
+        gtm_output_properties(output),
+        dedupe_filter_for_gtm_output(output),
+        client,
+        children=gtm_output_body_children(output),
+    )
 
 
 def dedupe_filter_for_business_profile(profile: BusinessProfile) -> Dict[str, Any]:

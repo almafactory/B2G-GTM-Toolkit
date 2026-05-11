@@ -38,6 +38,17 @@ def test_manifest_for_overrides_names():
     assert "B2G ICPs" not in names
 
 
+def test_gtm_outputs_manifest_has_dedupe_and_classification_properties():
+    gtm_outputs = next(db for db in DEFAULT_MANIFEST.databases if db.name == "B2G GTM Outputs")
+    property_names = [prop.name for prop in gtm_outputs.properties]
+
+    assert "Output Key" in property_names
+    assert "Source Evidence Hash" in property_names
+    assert "Stage" in property_names
+    assert "Channel" in property_names
+    assert "Owner" in property_names
+
+
 def test_target_account_properties_basic():
     account = TargetAccount(
         name="Alcaldia de Medellin",

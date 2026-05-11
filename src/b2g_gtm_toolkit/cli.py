@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -11,7 +12,7 @@ from pydantic import ValidationError
 import os
 
 from b2g_gtm_toolkit.models.business import BusinessProfile, ICP
-from b2g_gtm_toolkit.models.gtm import TargetAccountList
+from b2g_gtm_toolkit.models.gtm import GtmOutput, GtmOutputType, TargetAccountList
 from b2g_gtm_toolkit.models.notion import (
     NotionDatabaseSpec,
     NotionPropertySpec,
@@ -26,6 +27,7 @@ from b2g_gtm_toolkit.notion.write import (
     dedupe_filter_for_secop,
     import_workflow_to_notion,
     secop_record_properties,
+    upsert_gtm_output,
     upsert_page,
 )
 
@@ -63,11 +65,14 @@ class _StubNotionClient:
     def retrieve_page(self, page_id: str):
         return {"id": page_id, "properties": {}}
 
-    def create_page(self, database_id: str, properties):
+    def create_page(self, database_id: str, properties, children=None):
         return {"id": None}
 
     def update_page(self, page_id: str, properties):
         return {"id": page_id}
+
+    def append_page_children(self, page_id: str, children):
+        return {"id": page_id, "children": children}
 
 
 def _load_cli_env(dotenv_path: Optional[Path] = None) -> bool:
@@ -119,11 +124,17 @@ def _build_notion_client():
             def retrieve_page(self, page_id: str):
                 return self._c.pages.retrieve(page_id=page_id)
 
-            def create_page(self, database_id: str, properties):
-                return self._c.pages.create(parent={"data_source_id": database_id}, properties=properties)
+            def create_page(self, database_id: str, properties, children=None):
+                kwargs = {"parent": {"data_source_id": database_id}, "properties": properties}
+                if children:
+                    kwargs["children"] = children
+                return self._c.pages.create(**kwargs)
 
             def update_page(self, page_id: str, properties):
                 return self._c.pages.update(page_id=page_id, properties=properties)
+
+            def append_page_children(self, page_id: str, children):
+                return self._c.blocks.children.append(block_id=page_id, children=children)
 
             def create_database(self, parent_page_id: str, title: str, properties):
                 db = self._c.databases.create(
@@ -573,10 +584,45 @@ def secop_research(
 
 
 _OUTPUT_TYPE_MAP = {
-    "outreach": ("outreach.md", "build_outreach_context"),
-    "meeting-prep": ("meeting-prep.md", "build_meeting_prep_context"),
-    "proposal": ("proposal-brief.md", "build_proposal_context"),
+    "outreach": ("outreach.md", "build_outreach_context", GtmOutputType.outreach),
+    "meeting-prep": ("meeting-prep.md", "build_meeting_prep_context", GtmOutputType.meeting_prep),
+    "proposal": ("proposal-brief.md", "build_proposal_context", GtmOutputType.proposal_brief),
 }
+
+
+def _build_gtm_output_for_write(
+    *,
+    output_type: GtmOutputType,
+    type_label: str,
+    opportunity: Dict[str, Any],
+    account: Dict[str, Any],
+    research: list[Dict[str, Any]],
+    content: str,
+    opportunity_page: Optional[str],
+    target_account_page: Optional[str],
+) -> GtmOutput:
+    account_name = account.get("name") or account.get("normalized_name") or "Cuenta sin nombre"
+    opportunity_title = opportunity.get("title") or account_name
+    title = f"{type_label}: {opportunity_title}"
+    research_page_ids = [item.get("id") for item in research if item.get("id")]
+    evidence_keys = [
+        item.get("source_record_id") or item.get("process_id") or item.get("contract_id") or item.get("id")
+        for item in research
+    ]
+    evidence_payload = "|".join(sorted(str(key) for key in evidence_keys if key))
+    source_summary = f"{len(research)} registros SECOP usados para {account_name}"
+    return GtmOutput(
+        type=output_type,
+        title=title,
+        content=content,
+        source_summary=source_summary,
+        source_evidence_hash=hashlib.sha256(evidence_payload.encode("utf-8")).hexdigest()[:16]
+        if evidence_payload
+        else None,
+        target_account_ref=target_account_page or account.get("id"),
+        opportunity_ref=opportunity_page or opportunity.get("id"),
+        research_record_refs=[str(page_id) for page_id in research_page_ids],
+    )
 
 
 @output_app.command("create")
@@ -585,6 +631,8 @@ def output_create(
     source: Optional[str] = typer.Option(None, "--source", help="Ruta a JSON con {opportunity, account, research}."),
     opportunity_page: Optional[str] = typer.Option(None, "--opportunity-page", help="ID de pagina Notion de B2G Opportunities."),
     target_account_page: Optional[str] = typer.Option(None, "--target-account-page", help="ID de pagina Notion de B2G Target Accounts."),
+    to_notion: bool = typer.Option(False, "--to-notion", help="Preparar escritura del output en Notion."),
+    apply: bool = typer.Option(False, "--apply", help="Aplicar la escritura en Notion. Requiere --to-notion."),
     out: Path = typer.Option(None, "--out", help="Ruta opcional para escribir el markdown; si se omite, imprime a stdout."),
 ) -> None:
     """Genera entregables AE (outreach, meeting-prep, proposal) a partir de una oportunidad investigada."""
@@ -598,6 +646,13 @@ def output_create(
         typer.echo("Usa solo --opportunity-page o --target-account-page, no ambos.", err=True)
         raise typer.Exit(code=2)
 
+    if apply and not to_notion:
+        typer.echo("Para escribir en Notion usa --to-notion --apply.", err=True)
+        raise typer.Exit(code=2)
+
+    client = None
+    real = False
+    database_ids: Dict[str, str] = {}
     if opportunity_page or target_account_page:
         client, real = _build_notion_client()
         if not real:
@@ -619,6 +674,13 @@ def output_create(
         )
         opportunity, account, research = notion_input.builder_args()
     else:
+        if to_notion:
+            typer.echo(
+                "La escritura real en Notion requiere --opportunity-page o --target-account-page. "
+                "Usa --source solo para preview local o importaciones explicitas.",
+                err=True,
+            )
+            raise typer.Exit(code=2)
         if not source:
             typer.echo("Indica --source para preview local o --opportunity-page/--target-account-page para leer desde Notion.", err=True)
             raise typer.Exit(code=2)
@@ -650,15 +712,44 @@ def output_create(
         "proposal": build_proposal_context,
     }
 
-    template_name, _ = _OUTPUT_TYPE_MAP[type]
+    template_name, _, output_type = _OUTPUT_TYPE_MAP[type]
     context = builders[type](opportunity, account, research)
     markdown = render(template_name, context)
+    output = _build_gtm_output_for_write(
+        output_type=output_type,
+        type_label=type,
+        opportunity=opportunity,
+        account=account,
+        research=research,
+        content=markdown,
+        opportunity_page=opportunity_page,
+        target_account_page=target_account_page,
+    )
 
     if out:
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(markdown, encoding="utf-8")
         typer.echo(f"OK: salida escrita en {out}")
-    else:
+
+    if to_notion:
+        if not apply:
+            typer.echo("Preview generado: no se escribio en Notion porque falta --apply.")
+            if not out:
+                typer.echo(markdown)
+            raise typer.Exit(code=0)
+        if client is None or not real:
+            client, real = _build_notion_client()
+        if not real:
+            typer.echo("Para escribir en Notion se requiere Notion configurado.", err=True)
+            raise typer.Exit(code=2)
+        if not database_ids:
+            database_ids = _database_ids_for_names(["B2G GTM Outputs"], client)
+        result = upsert_gtm_output(database_ids["B2G GTM Outputs"], output, client)
+        typer.echo(f"OK: output {'actualizado' if result.action == 'update' else 'creado'} en Notion")
+        typer.echo(f"  pagina: {result.page_id}")
+        raise typer.Exit(code=0)
+
+    if not out:
         typer.echo(markdown)
     raise typer.Exit(code=0)
 
