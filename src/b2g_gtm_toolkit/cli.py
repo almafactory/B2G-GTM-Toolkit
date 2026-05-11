@@ -24,9 +24,11 @@ from b2g_gtm_toolkit.notion.schema import DEFAULT_MANIFEST, manifest_for
 from b2g_gtm_toolkit.notion.verify import plan_setup, verify_workspace
 from b2g_gtm_toolkit.notion.read import resolve_opportunity_input, resolve_target_account_input
 from b2g_gtm_toolkit.notion.write import (
+    _looks_like_notion_page_id,
     dedupe_filter_for_secop,
     import_workflow_to_notion,
     secop_record_properties,
+    sync_secop_research_to_notion,
     upsert_gtm_output,
     upsert_page,
 )
@@ -543,8 +545,14 @@ def secop_research(
     offline: bool = typer.Option(False, "--offline", help="Usar fixtures locales en lugar de la API real."),
     output_root: Path = typer.Option(Path("data/runs"), "--output-root", help="Carpeta raiz para las ejecuciones."),
     fixtures_dir: Path = typer.Option(Path("tests/fixtures/secop"), "--fixtures-dir", help="Directorio de fixtures cuando se usa --offline."),
+    to_notion: bool = typer.Option(False, "--to-notion", help="Preparar sync de resultados a Notion."),
+    apply: bool = typer.Option(False, "--apply", help="Escribir en Notion. Requiere --to-notion."),
 ) -> None:
     """Ejecuta una investigacion SECOP con la entrada provista y escribe JSONL normalizado."""
+    if apply and not to_notion:
+        typer.echo("Para escribir en Notion usa --to-notion --apply.", err=True)
+        raise typer.Exit(code=2)
+
     input_path = Path(input)
     if not input_path.exists():
         typer.echo(f"Archivo de entrada no encontrado: {input_path}", err=True)
@@ -580,6 +588,53 @@ def secop_research(
     typer.echo(f"  registros deduplicados: {run.deduped_count}")
     typer.echo(f"  jsonl: {run.jsonl_path}")
     typer.echo(f"  manifest: {run.manifest_path}")
+    if not to_notion:
+        typer.echo("Notion: no solicitado; nada fue escrito.")
+        raise typer.Exit(code=0)
+
+    records = _load_secop_records(run.jsonl_path)
+    required_dbs = ["B2G SECOP Research"]
+    if input_data.target_account_ref and not _looks_like_notion_page_id(input_data.target_account_ref):
+        required_dbs.append("B2G Target Accounts")
+
+    database_ids = {name: name for name in required_dbs}
+    client = None
+    if apply:
+        _load_cli_env()
+        if not os.environ.get("NOTION_TOKEN"):
+            typer.echo("--apply requiere NOTION_TOKEN en el entorno.", err=True)
+            raise typer.Exit(code=2)
+        client, real = _build_notion_client()
+        if not real:
+            typer.echo("No se pudo inicializar el cliente real de Notion.", err=True)
+            raise typer.Exit(code=2)
+        database_ids = _database_ids_for_names(required_dbs, client)
+
+    sync_result = sync_secop_research_to_notion(
+        records=records,
+        database_ids=database_ids,
+        client=client,
+        target_account_ref=input_data.target_account_ref,
+    )
+    created = sum(1 for item in sync_result.secop_records if item.action in {"create", "dry_run_create"})
+    updated = sum(1 for item in sync_result.secop_records if item.action in {"update", "dry_run_update"})
+    if apply:
+        typer.echo(f"Notion escrito: {created} registros creados, {updated} actualizados en B2G SECOP Research.")
+    else:
+        typer.echo("Notion preview: nada fue escrito.")
+        typer.echo(f"  upserts planeados en B2G SECOP Research: {len(sync_result.secop_records)}")
+        typer.echo("  usa --apply para escribir estos resultados.")
+
+    if sync_result.target_account_status == "direct_page_id":
+        typer.echo("Target Account: relacionado usando el page id provisto.")
+    elif sync_result.target_account_status == "resolved":
+        typer.echo("Target Account: referencia resuelta y relacionada en Notion.")
+    elif sync_result.target_account_status == "ambiguous":
+        typer.echo("Target Account: referencia ambigua; los registros SECOP quedaron sin relacion.")
+    elif sync_result.target_account_status == "not_resolved":
+        typer.echo("Target Account: referencia no resuelta; los registros SECOP quedaron sin relacion.")
+    else:
+        typer.echo("Target Account: no provisto.")
     raise typer.Exit(code=0)
 
 

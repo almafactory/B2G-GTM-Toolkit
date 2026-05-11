@@ -38,6 +38,14 @@ class WorkflowImportResult:
     augmented_target_account_nits: int
 
 
+@dataclass
+class SecopResearchSyncResult:
+    secop_records: List[WriteResult]
+    target_account_ref: Optional[str]
+    target_account_page_id: Optional[str]
+    target_account_status: str
+
+
 _NOTION_PAGE_ID_RE = re.compile(
     r"^(?:[0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
 )
@@ -308,6 +316,82 @@ def dedupe_filter_for_secop(record: SecopNormalizedRecord) -> Dict[str, Any]:
             {"property": "Source Record ID", "rich_text": {"equals": record.source_record_id}},
         ]
     }
+
+
+def lookup_filter_for_target_account_ref(target_account_ref: str) -> Dict[str, Any]:
+    clauses: List[Dict[str, Any]] = [
+        {"property": "Name", "title": {"equals": target_account_ref}},
+        {"property": "Normalized Name", "rich_text": {"equals": target_account_ref}},
+    ]
+    if _nit_key(target_account_ref):
+        clauses.append({"property": "NIT", "rich_text": {"equals": target_account_ref}})
+    return clauses[0] if len(clauses) == 1 else {"or": clauses}
+
+
+def _resolve_target_account_ref(
+    *,
+    target_account_ref: Optional[str],
+    target_accounts_database_id: Optional[str],
+    client: Optional[NotionWriterLike],
+) -> tuple[Optional[str], str]:
+    if not target_account_ref:
+        return None, "not_provided"
+    if _looks_like_notion_page_id(target_account_ref):
+        return target_account_ref, "direct_page_id"
+    if not client or not target_accounts_database_id:
+        return None, "not_resolved"
+
+    matches = client.query_database(
+        target_accounts_database_id,
+        lookup_filter_for_target_account_ref(target_account_ref),
+    )
+    if len(matches) == 1 and matches[0].get("id"):
+        return matches[0]["id"], "resolved"
+    if len(matches) > 1:
+        return None, "ambiguous"
+    return None, "not_resolved"
+
+
+def _secop_record_for_write(
+    record: SecopNormalizedRecord,
+    target_account_page_id: Optional[str],
+) -> SecopNormalizedRecord:
+    if target_account_page_id:
+        return record.model_copy(update={"matched_account_id": target_account_page_id})
+    if record.matched_account_id and not _looks_like_notion_page_id(record.matched_account_id):
+        return record.model_copy(update={"matched_account_id": None})
+    return record
+
+
+def sync_secop_research_to_notion(
+    *,
+    records: List[SecopNormalizedRecord],
+    database_ids: Dict[str, str],
+    client: Optional[NotionWriterLike] = None,
+    target_account_ref: Optional[str] = None,
+) -> SecopResearchSyncResult:
+    target_account_page_id, target_account_status = _resolve_target_account_ref(
+        target_account_ref=target_account_ref,
+        target_accounts_database_id=database_ids.get("B2G Target Accounts"),
+        client=client,
+    )
+    results: List[WriteResult] = []
+    for record in records:
+        record_for_write = _secop_record_for_write(record, target_account_page_id)
+        results.append(
+            upsert_page(
+                database_ids["B2G SECOP Research"],
+                secop_record_properties(record_for_write),
+                dedupe_filter_for_secop(record),
+                client,
+            )
+        )
+    return SecopResearchSyncResult(
+        secop_records=results,
+        target_account_ref=target_account_ref,
+        target_account_page_id=target_account_page_id,
+        target_account_status=target_account_status,
+    )
 
 
 def upsert_gtm_output(
