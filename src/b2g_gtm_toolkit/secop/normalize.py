@@ -99,6 +99,21 @@ def _apply_field_map(raw: Dict[str, Any], field_map: Dict[str, str]) -> Dict[str
     return out
 
 
+def _coerce_source_url(value: Any) -> Optional[str]:
+    """Socrata a veces devuelve urlproceso como string y a veces como objeto {\"url\": \"...\"}."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        s = value.strip()
+        return s or None
+    if isinstance(value, dict):
+        for key in ("url", "href", "link"):
+            inner = value.get(key)
+            if isinstance(inner, str) and inner.strip():
+                return inner.strip()
+    return None
+
+
 def _build_source_record_id(dataset: DatasetSpec, mapped: Dict[str, Any], raw: Dict[str, Any]) -> str:
     candidate = (
         mapped.get("contract_id")
@@ -134,9 +149,11 @@ def normalize_record(
     if primary:
         unspsc_codes.append(str(primary))
 
+    source_url = _coerce_source_url(mapped.get("source_url"))
+
     provenance = Provenance(
         source_dataset=dataset.dataset_id,
-        source_url=mapped.get("source_url"),
+        source_url=source_url,
         retrieved_at=retrieved_at or now_utc(),
         raw_payload_hash=hash_payload(raw),
         query=query or {},
@@ -146,7 +163,7 @@ def normalize_record(
         source_platform=dataset.source_platform,
         source_dataset=dataset.dataset_id,
         source_record_id=_build_source_record_id(dataset, mapped, raw),
-        source_url=mapped.get("source_url"),
+        source_url=source_url,
         process_id=mapped.get("process_id"),
         contract_id=mapped.get("contract_id"),
         buyer_name=buyer_name,

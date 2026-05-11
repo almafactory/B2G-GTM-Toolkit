@@ -13,6 +13,7 @@ authors = [{ name = "B2G GTM Toolkit" }]
 dependencies = [
     "typer>=0.12",
     "pydantic>=2.6",
+    "email-validator>=2.0",
     "httpx>=0.27",
     "notion-client>=2.2",
     "python-dotenv>=1.0",
