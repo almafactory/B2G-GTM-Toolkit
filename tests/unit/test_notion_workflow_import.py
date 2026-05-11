@@ -25,10 +25,11 @@ class StatefulFakeNotionClient:
         self.page_databases: dict[str, str] = {}
 
     def query_database(self, database_id: str, filter: Optional[Dict[str, Any]]):
+        hits = []
         for page_id, properties in self.pages.items():
             if self.page_databases[page_id] == database_id and _matches_filter(properties, filter):
-                return [{"id": page_id, "properties": properties}]
-        return []
+                hits.append({"id": page_id, "properties": properties})
+        return hits
 
     def create_page(self, database_id: str, properties: Dict[str, Any]):
         page_id = f"page_{len(self.creates) + 1}"
@@ -48,6 +49,8 @@ def _matches_filter(properties: Dict[str, Any], filter: Optional[Dict[str, Any]]
         return True
     if "and" in filter:
         return all(_matches_filter(properties, clause) for clause in filter["and"])
+    if "or" in filter:
+        return any(_matches_filter(properties, clause) for clause in filter["or"])
     prop = filter["property"]
     if "title" in filter:
         return _prop_value(properties, prop, "title") == filter["title"]["equals"]
@@ -202,3 +205,33 @@ def test_multi_select_values_are_safe_for_notion() -> None:
     option_name = profile_props["Best Customers"]["multi_select"][0]["name"]
     assert "," not in option_name
     assert len(option_name) <= 100
+
+
+def test_repeated_import_updates_target_when_only_title_accents_change() -> None:
+    accent = TargetAccount(
+        name="Alcaldía de Soledad",
+        entity_type="alcaldia",
+        department="Atlantico",
+        municipality="Soledad",
+        fit_score=70,
+    )
+    plain_named = accent.model_copy(update={"name": "Alcaldia de Soledad"})
+    fake = StatefulFakeNotionClient()
+    first = import_workflow_to_notion(
+        business_profile=_business_profile(),
+        icp=_icp(),
+        target_accounts=[accent],
+        secop_records=[_secop_record()],
+        database_ids=DB_IDS,
+        client=fake,
+    )
+    second = import_workflow_to_notion(
+        business_profile=_business_profile(),
+        icp=_icp(),
+        target_accounts=[plain_named],
+        secop_records=[_secop_record()],
+        database_ids=DB_IDS,
+        client=fake,
+    )
+    assert second.target_accounts[0].action == "update"
+    assert second.target_accounts[0].page_id == first.target_accounts[0].page_id

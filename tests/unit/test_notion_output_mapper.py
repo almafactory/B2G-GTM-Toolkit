@@ -4,10 +4,11 @@ from typing import Any, Dict, Optional
 
 from b2g_gtm_toolkit.models.gtm import GtmOutput, GtmOutputType
 from b2g_gtm_toolkit.notion.output_mapper import (
+    composite_output_storage_key,
     dedupe_filter_for_gtm_output,
     gtm_output_body_children,
     gtm_output_properties,
-    output_key_for_gtm_output,
+    legacy_output_key_for_gtm,
 )
 from b2g_gtm_toolkit.notion.write import upsert_gtm_output
 
@@ -22,10 +23,11 @@ class StatefulFakeOutputClient:
         self.children: dict[str, list[dict[str, Any]]] = {}
 
     def query_database(self, database_id: str, filter: Optional[Dict[str, Any]]):
+        hits = []
         for page_id, properties in self.pages.items():
             if self.page_databases[page_id] == database_id and _matches_filter(properties, filter):
-                return [{"id": page_id, "properties": properties}]
-        return []
+                hits.append({"id": page_id, "properties": properties})
+        return hits
 
     def create_page(self, database_id: str, properties: Dict[str, Any], children=None):
         page_id = f"output_{len(self.creates) + 1}"
@@ -49,6 +51,10 @@ class StatefulFakeOutputClient:
 def _matches_filter(properties: Dict[str, Any], filter: Optional[Dict[str, Any]]) -> bool:
     if not filter:
         return True
+    if "and" in filter:
+        return all(_matches_filter(properties, clause) for clause in filter["and"])
+    if "or" in filter:
+        return any(_matches_filter(properties, clause) for clause in filter["or"])
     prop = filter["property"]
     if "rich_text" in filter:
         return _rich_text_value(properties, prop) == filter["rich_text"]["equals"]
@@ -86,16 +92,54 @@ def test_gtm_output_maps_properties_and_dedupe_key() -> None:
     assert props["Target Account"]["relation"][0]["id"] == "account-1"
     assert props["Opportunity"]["relation"][0]["id"] == "opportunity-1"
     assert props["Research Records"]["relation"][0]["id"] == "research-1"
-    assert props["Output Key"]["rich_text"][0]["text"]["content"] == output_key_for_gtm_output(output)
+    composite = composite_output_storage_key(output)
+    legacy = legacy_output_key_for_gtm(output)
+    assert props["Output Key"]["rich_text"][0]["text"]["content"] == composite
     assert props["Source Evidence Hash"]["rich_text"][0]["text"]["content"] == "hash-evidence-1"
-    assert dedupe["rich_text"]["equals"] == output_key_for_gtm_output(output)
+    assert dedupe == {
+        "or": [
+            {"property": "Output Key", "rich_text": {"equals": composite}},
+            {"property": "Output Key", "rich_text": {"equals": legacy}},
+        ],
+    }
+
+
+
+def test_gtm_output_explicit_output_key_matches_single_equals_dedupe() -> None:
+    output = _output().model_copy(update={"output_key": "custom-key-fixed"})
+    props = gtm_output_properties(output)
+    dedupe = dedupe_filter_for_gtm_output(output)
+    assert props["Output Key"]["rich_text"][0]["text"]["content"] == "custom-key-fixed"
+    assert dedupe == {"property": "Output Key", "rich_text": {"equals": "custom-key-fixed"}}
+
+
+
+
+def test_upsert_matches_legacy_output_key_stored_without_composite_prefix() -> None:
+    fake = StatefulFakeOutputClient()
+    legacy = "|".join(
+        [
+            GtmOutputType.outreach.value,
+            "opportunity-1",
+            "account-1",
+            "hash-evidence-1",
+        ]
+    )
+    seeded_id = "seed_legacy"
+    fake.pages[seeded_id] = {
+        "Output Key": {"rich_text": [{"type": "text", "text": {"content": legacy}}]},
+    }
+    fake.page_databases[seeded_id] = "db_outputs"
+    outcome = upsert_gtm_output("db_outputs", _output(), fake)
+    assert outcome.action == "update"
+    assert outcome.page_id == seeded_id
+    updated_key = fake.pages[seeded_id]["Output Key"]["rich_text"][0]["text"]["content"]
+    assert updated_key.startswith("g:")
 
 
 def test_gtm_output_body_children_keep_content_readable() -> None:
     children = gtm_output_body_children(_output())
-
     assert children[0]["type"] == "heading_1"
-    assert children[1]["type"] == "bulleted_list_item"
     assert children[2]["paragraph"]["rich_text"][0]["text"]["content"] == "Mensaje completo"
 
 

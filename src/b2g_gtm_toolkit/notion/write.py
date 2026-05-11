@@ -7,6 +7,13 @@ from typing import Any, Dict, List, Optional, Protocol
 from b2g_gtm_toolkit.models.business import BusinessProfile, ICP
 from b2g_gtm_toolkit.models.gtm import GtmOutput, TargetAccount
 from b2g_gtm_toolkit.models.secop import SecopNormalizedRecord
+from b2g_gtm_toolkit.notion.read import target_account_from_page
+from b2g_gtm_toolkit.notion.dedupe_norm import (
+    collapse_whitespace,
+    entity_name_normalized,
+    municipality_normalized,
+    nit_digits_normalized,
+)
 from b2g_gtm_toolkit.utils.ids import normalize_text
 
 
@@ -126,7 +133,7 @@ def _looks_like_notion_page_id(value: Optional[str]) -> bool:
 
 
 def _nit_key(value: Optional[str]) -> str:
-    return re.sub(r"\D+", "", value or "")
+    return nit_digits_normalized(value)
 
 
 def _significant_tokens(value: Optional[str]) -> set[str]:
@@ -226,13 +233,20 @@ def icp_properties(icp: ICP) -> Dict[str, Any]:
 
 
 def target_account_properties(account: TargetAccount) -> Dict[str, Any]:
+    display_name = collapse_whitespace(account.name) or account.name
+    nit_store = nit_digits_normalized(account.nit) if account.nit else None
+    norm_name_store = entity_name_normalized(
+        normalized_name=account.normalized_name,
+        display_name=account.name,
+    )
+    mun_store = municipality_normalized(account.municipality) if account.municipality else ""
     props: Dict[str, Any] = {
-        "Name": _title(account.name),
-        "Normalized Name": _rich_text(account.normalized_name),
+        "Name": _title(display_name),
+        "Normalized Name": _rich_text(norm_name_store or None),
         "Entity Type": _select(account.entity_type),
-        "NIT": _rich_text(account.nit),
+        "NIT": _rich_text(nit_store if nit_store else (account.nit.strip() if account.nit else None)),
         "Department": _select(account.department),
-        "Municipality": _rich_text(account.municipality),
+        "Municipality": _rich_text(mun_store or None),
         "Category": _select(account.category),
         "Fit Score": _number(account.fit_score),
         "Fit Rationale": _rich_text(account.fit_rationale),
@@ -319,12 +333,20 @@ def dedupe_filter_for_secop(record: SecopNormalizedRecord) -> Dict[str, Any]:
 
 
 def lookup_filter_for_target_account_ref(target_account_ref: str) -> Dict[str, Any]:
+    ref = (target_account_ref or "").strip()
     clauses: List[Dict[str, Any]] = [
-        {"property": "Name", "title": {"equals": target_account_ref}},
-        {"property": "Normalized Name", "rich_text": {"equals": target_account_ref}},
+        {"property": "Name", "title": {"equals": ref}},
+        {
+            "property": "Normalized Name",
+            "rich_text": {"equals": entity_name_normalized(normalized_name=None, display_name=ref)},
+        },
     ]
-    if _nit_key(target_account_ref):
-        clauses.append({"property": "NIT", "rich_text": {"equals": target_account_ref}})
+    nk = nit_digits_normalized(ref)
+    if nk:
+        clauses.append({"property": "NIT", "rich_text": {"equals": nk}})
+    collapsed = collapse_whitespace(ref)
+    if collapsed and collapsed != ref:
+        clauses.append({"property": "Name", "title": {"equals": collapsed}})
     return clauses[0] if len(clauses) == 1 else {"or": clauses}
 
 
@@ -422,14 +444,103 @@ def dedupe_filter_for_icp(icp: ICP) -> Dict[str, Any]:
     return {"property": "Name", "title": {"equals": icp.name}}
 
 
-def dedupe_filter_for_target_account(account: TargetAccount) -> Dict[str, Any]:
-    if account.nit:
-        return {"property": "NIT", "rich_text": {"equals": account.nit}}
+def _unique_filter_arms(arms: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    seen: set[str] = set()
+    out: List[Dict[str, Any]] = []
+    for arm in arms:
+        key = str(arm)
+        if key not in seen:
+            seen.add(key)
+            out.append(arm)
+    return out
 
-    clauses: List[Dict[str, Any]] = [{"property": "Name", "title": {"equals": account.name}}]
-    if account.municipality:
-        clauses.append({"property": "Municipality", "rich_text": {"equals": account.municipality}})
-    return {"and": clauses}
+
+def target_account_match_filter(account: TargetAccount) -> Dict[str, Any]:
+    """OR across NIT, normalized name(+muni), and legacy title/muni variants (dedupe-safe)."""
+    arms: List[Dict[str, Any]] = []
+    nit = nit_digits_normalized(account.nit)
+    name_key = entity_name_normalized(
+        normalized_name=account.normalized_name,
+        display_name=account.name,
+    )
+    mun_key = municipality_normalized(account.municipality) if account.municipality else ""
+    title_plain = collapse_whitespace(account.name) or account.name
+    raw_muni = collapse_whitespace(account.municipality or "")
+
+    if nit:
+        arms.append({"property": "NIT", "rich_text": {"equals": nit}})
+    if name_key and mun_key:
+        arms.append(
+            {
+                "and": [
+                    {"property": "Normalized Name", "rich_text": {"equals": name_key}},
+                    {"property": "Municipality", "rich_text": {"equals": mun_key}},
+                ]
+            }
+        )
+    elif name_key:
+        arms.append({"property": "Normalized Name", "rich_text": {"equals": name_key}})
+    if title_plain and mun_key:
+        arms.append(
+            {
+                "and": [
+                    {"property": "Name", "title": {"equals": title_plain}},
+                    {"property": "Municipality", "rich_text": {"equals": mun_key}},
+                ]
+            }
+        )
+    elif title_plain and not mun_key:
+        arms.append({"property": "Name", "title": {"equals": title_plain}})
+    if title_plain and raw_muni and raw_muni != mun_key:
+        arms.append(
+            {
+                "and": [
+                    {"property": "Name", "title": {"equals": title_plain}},
+                    {"property": "Municipality", "rich_text": {"equals": raw_muni}},
+                ]
+            }
+        )
+    arms = _unique_filter_arms(arms)
+    if not arms:
+        arms = [{"property": "Name", "title": {"equals": title_plain}}]
+    return arms[0] if len(arms) == 1 else {"or": arms}
+
+
+def dedupe_filter_for_target_account(account: TargetAccount) -> Dict[str, Any]:
+    return target_account_match_filter(account)
+
+
+def pick_canonical_target_account_page(existing: List[Dict[str, Any]], account: TargetAccount) -> str:
+    nit = nit_digits_normalized(account.nit)
+    pool = existing
+    if nit:
+        matched = [
+            page
+            for page in existing
+            if nit_digits_normalized(target_account_from_page(page).get("nit")) == nit
+        ]
+        if matched:
+            pool = matched
+    ordered = sorted(pool, key=lambda page: page.get("created_time") or "")
+    return ordered[0]["id"]
+
+
+def upsert_target_account(
+    *,
+    database_id: str,
+    account: TargetAccount,
+    client: Optional[NotionWriterLike] = None,
+) -> WriteResult:
+    props = target_account_properties(account)
+    if client is None:
+        return WriteResult(action="dry_run_create", page_id=None, properties=props)
+    existing = client.query_database(database_id, target_account_match_filter(account)) or []
+    if existing:
+        page_id = pick_canonical_target_account_page(existing, account)
+        client.update_page(page_id, props)
+        return WriteResult(action="update", page_id=page_id, properties=props)
+    created = client.create_page(database_id, props)
+    return WriteResult(action="create", page_id=created.get("id"), properties=props)
 
 
 def import_workflow_to_notion(
@@ -465,11 +576,10 @@ def import_workflow_to_notion(
         if icp_result.page_id:
             account_for_write = account.model_copy(update={"icp_ref": icp_result.page_id})
         account_results.append(
-            upsert_page(
-                database_ids["B2G Target Accounts"],
-                target_account_properties(account_for_write),
-                dedupe_filter_for_target_account(account_for_write),
-                client,
+            upsert_target_account(
+                database_id=database_ids["B2G Target Accounts"],
+                account=account_for_write,
+                client=client,
             )
         )
 

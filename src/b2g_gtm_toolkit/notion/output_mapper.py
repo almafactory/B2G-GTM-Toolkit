@@ -4,8 +4,9 @@ import hashlib
 from typing import Any, Dict, Iterable, List
 
 from b2g_gtm_toolkit.models.gtm import GtmOutput, GtmOutputType
+from b2g_gtm_toolkit.notion.dedupe_norm import entity_name_normalized
 
-from .write import _relation, _rich_text, _select, _title
+from .write import _looks_like_notion_page_id, _relation, _rich_text, _select, _title
 
 
 _CONTENT_PROPERTY_LIMIT = 1900
@@ -23,7 +24,8 @@ def source_evidence_hash_for_output(output: GtmOutput) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
-def output_key_for_gtm_output(output: GtmOutput) -> str:
+def legacy_output_key_for_gtm(output: GtmOutput) -> str:
+    """Previous Output Key format (embeds Notion page ids when refs are page ids)."""
     if output.output_key:
         return output.output_key
     parts = [
@@ -33,6 +35,31 @@ def output_key_for_gtm_output(output: GtmOutput) -> str:
         source_evidence_hash_for_output(output),
     ]
     return "|".join(parts)
+
+
+def logical_output_stable_token(output: GtmOutput) -> str:
+    """Stable hash for dedupe: type + opportunity + evidence + research set; omits target page id."""
+    opp = (output.opportunity_ref or "").strip()
+    evid = output.source_evidence_hash or source_evidence_hash_for_output(output)
+    research = ".".join(sorted(output.research_record_refs))
+    t = output.type.value
+    target_slot = ""
+    ta = (output.target_account_ref or "").strip()
+    if ta and not _looks_like_notion_page_id(ta):
+        target_slot = entity_name_normalized(normalized_name=None, display_name=ta)
+    payload = "|".join([t, opp, evid, research, target_slot])
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def composite_output_storage_key(output: GtmOutput) -> str:
+    """Primary stored Output Key; legacy rows still match via dedupe OR."""
+    if output.output_key:
+        return output.output_key
+    return f"g:{logical_output_stable_token(output)}|{legacy_output_key_for_gtm(output)}"
+
+
+def output_key_for_gtm_output(output: GtmOutput) -> str:
+    return composite_output_storage_key(output)
 
 
 def default_channel_for_type(output_type: GtmOutputType) -> str:
@@ -45,7 +72,7 @@ def default_channel_for_type(output_type: GtmOutputType) -> str:
 
 def gtm_output_properties(output: GtmOutput) -> Dict[str, Any]:
     source_evidence_hash = source_evidence_hash_for_output(output)
-    output_key = output.output_key or output_key_for_gtm_output(output)
+    output_key = composite_output_storage_key(output)
     props: Dict[str, Any] = {
         "Title": _title(output.title),
         "Type": _select(output.type.value),
@@ -69,7 +96,22 @@ def gtm_output_properties(output: GtmOutput) -> Dict[str, Any]:
 
 
 def dedupe_filter_for_gtm_output(output: GtmOutput) -> Dict[str, Any]:
-    return {"property": "Output Key", "rich_text": {"equals": output_key_for_gtm_output(output)}}
+    keys = _unique_strings([composite_output_storage_key(output), legacy_output_key_for_gtm(output)])
+    if len(keys) == 1:
+        return {"property": "Output Key", "rich_text": {"equals": keys[0]}}
+    return {
+        "or": [{"property": "Output Key", "rich_text": {"equals": key}} for key in keys],
+    }
+
+
+def _unique_strings(values: List[str]) -> List[str]:
+    seen: set[str] = set()
+    out: List[str] = []
+    for v in values:
+        if v and v not in seen:
+            seen.add(v)
+            out.append(v)
+    return out
 
 
 def gtm_output_body_children(output: GtmOutput) -> List[Dict[str, Any]]:

@@ -4,7 +4,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import typer
 from dotenv import load_dotenv
@@ -24,6 +24,7 @@ from b2g_gtm_toolkit.secop.research import default_offline_fixtures, run_researc
 from b2g_gtm_toolkit.notion.schema import DEFAULT_MANIFEST, manifest_for
 from b2g_gtm_toolkit.notion.verify import plan_setup, verify_workspace
 from b2g_gtm_toolkit.notion.read import resolve_opportunity_input, resolve_target_account_input
+from b2g_gtm_toolkit.notion.target_account_repair import apply_duplicate_merge, find_duplicate_groups
 from b2g_gtm_toolkit.notion.write import (
     _looks_like_notion_page_id,
     dedupe_filter_for_secop,
@@ -77,7 +78,14 @@ class _StubNotionClient:
     def append_page_children(self, page_id: str, children):
         return {"id": page_id, "children": children}
 
+    def query_database_all(self, database_id: str):
+        return []
 
+    def query_database_filtered_all(self, database_id: str, filter_payload):
+        return []
+
+    def archive_page(self, page_id: str):
+        return {"id": page_id, "archived": True}
 def _load_cli_env(dotenv_path: Optional[Path] = None) -> bool:
     """Load local CLI configuration without overwriting exported values."""
     return load_dotenv(dotenv_path=dotenv_path or (Path.cwd() / ".env"), override=False)
@@ -138,6 +146,33 @@ def _build_notion_client():
 
             def append_page_children(self, page_id: str, children):
                 return self._c.blocks.children.append(block_id=page_id, children=children)
+
+            def query_database_all(self, database_id: str):
+                return self._drain_queries(database_id, None)
+
+            def query_database_filtered_all(self, database_id: str, filter_payload: Dict[str, Any]):
+                return self._drain_queries(database_id, filter_payload)
+
+            def _drain_queries(self, database_id: str, filter_payload: Optional[Dict[str, Any]]):
+                accumulated: List[Dict[str, Any]] = []
+                cursor: Optional[str] = None
+                while True:
+                    kwargs: Dict[str, Any] = {"data_source_id": database_id, "page_size": 100}
+                    if filter_payload is not None:
+                        kwargs["filter"] = filter_payload
+                    if cursor:
+                        kwargs["start_cursor"] = cursor
+                    response = self._c.data_sources.query(**kwargs)
+                    accumulated.extend(response.get("results") or [])
+                    if not response.get("has_more"):
+                        break
+                    cursor = response.get("next_cursor")
+                    if not cursor:
+                        break
+                return accumulated
+
+            def archive_page(self, page_id: str):
+                return self._c.pages.update(page_id=page_id, archived=True)
 
             def create_database(self, parent_page_id: str, title: str, properties):
                 db = self._c.databases.create(
@@ -352,6 +387,51 @@ def notion_verify() -> None:
         raise typer.Exit(code=0)
     typer.echo("Estado: faltan elementos. Ejecuta 'b2g-gtm notion setup --dry-run' para ver el plan.")
     raise typer.Exit(code=1)
+
+
+@notion_app.command("repair-duplicates")
+def notion_repair_duplicates(
+    apply: bool = typer.Option(False, "--apply", help="Relacionar SECOP/GTM Outputs al canonical y archivar duplicados."),
+    skip_archive: bool = typer.Option(
+        False,
+        "--skip-archive",
+        help="Con --apply: relink sin archivar paginas duplicadas en Notion.",
+    ),
+) -> None:
+    """Lista candidatos duplicados en B2G Target Accounts; --apply consolida relaciones."""
+    client, real = _build_notion_client()
+    if not real or not getattr(client, "query_database_all", None):
+        typer.echo("Este comando requiere NOTION_TOKEN y notion-client operativo.", err=True)
+        raise typer.Exit(code=2)
+    required = ["B2G Target Accounts", "B2G SECOP Research", "B2G GTM Outputs"]
+    database_ids = _database_ids_for_names(required, client)
+
+    target_ds = database_ids["B2G Target Accounts"]
+    pages = client.query_database_all(target_ds)
+    groups = find_duplicate_groups(pages)
+    payload: Dict[str, Any] = {"target_account_pages_scanned": len(pages), "duplicate_groups": groups}
+    if not apply:
+        typer.echo(json.dumps(payload, indent=2, ensure_ascii=False))
+        typer.echo(f"Resumen: {len(groups)} grupos con duplicados. Usa --apply para consolidar.")
+        raise typer.Exit(code=0)
+
+    if not groups:
+        typer.echo("Sin grupos duplicados; nada que aplicar.")
+        raise typer.Exit(code=0)
+
+    applied = apply_duplicate_merge(
+        duplicate_groups=groups,
+        client=client,
+        secop_database_id=database_ids["B2G SECOP Research"],
+        gtm_outputs_database_id=database_ids["B2G GTM Outputs"],
+        fetch_with_filter=lambda ds, filt: client.query_database_filtered_all(ds, filt),
+        archive_duplicates=not skip_archive,
+    )
+    typer.echo(
+        f"Aplicado: SECOP relinks={applied.relinked_secop}, GTM Outputs relinks={applied.relinked_outputs}, "
+        f"archivos={applied.archived_pages}"
+    )
+    raise typer.Exit(code=0)
 
 
 @notion_app.command("setup")
