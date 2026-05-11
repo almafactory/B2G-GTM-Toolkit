@@ -21,6 +21,7 @@ from b2g_gtm_toolkit.models.secop import SecopNormalizedRecord, SecopResearchInp
 from b2g_gtm_toolkit.secop.research import default_offline_fixtures, run_research
 from b2g_gtm_toolkit.notion.schema import DEFAULT_MANIFEST, manifest_for
 from b2g_gtm_toolkit.notion.verify import plan_setup, verify_workspace
+from b2g_gtm_toolkit.notion.read import resolve_opportunity_input, resolve_target_account_input
 from b2g_gtm_toolkit.notion.write import (
     dedupe_filter_for_secop,
     import_workflow_to_notion,
@@ -58,6 +59,9 @@ class _StubNotionClient:
 
     def query_database(self, database_id: str, filter):
         return []
+
+    def retrieve_page(self, page_id: str):
+        return {"id": page_id, "properties": {}}
 
     def create_page(self, database_id: str, properties):
         return {"id": None}
@@ -111,6 +115,9 @@ def _build_notion_client():
 
             def query_database(self, database_id: str, filter):
                 return self._c.data_sources.query(data_source_id=database_id, filter=filter).get("results", [])
+
+            def retrieve_page(self, page_id: str):
+                return self._c.pages.retrieve(page_id=page_id)
 
             def create_page(self, database_id: str, properties):
                 return self._c.pages.create(parent={"data_source_id": database_id}, properties=properties)
@@ -575,7 +582,9 @@ _OUTPUT_TYPE_MAP = {
 @output_app.command("create")
 def output_create(
     type: str = typer.Option(..., "--type", help="Tipo de salida: outreach | meeting-prep | proposal."),
-    source: str = typer.Option(..., "--source", help="Ruta a JSON con {opportunity, account, research}."),
+    source: Optional[str] = typer.Option(None, "--source", help="Ruta a JSON con {opportunity, account, research}."),
+    opportunity_page: Optional[str] = typer.Option(None, "--opportunity-page", help="ID de pagina Notion de B2G Opportunities."),
+    target_account_page: Optional[str] = typer.Option(None, "--target-account-page", help="ID de pagina Notion de B2G Target Accounts."),
     out: Path = typer.Option(None, "--out", help="Ruta opcional para escribir el markdown; si se omite, imprime a stdout."),
 ) -> None:
     """Genera entregables AE (outreach, meeting-prep, proposal) a partir de una oportunidad investigada."""
@@ -585,20 +594,48 @@ def output_create(
         )
         raise typer.Exit(code=2)
 
-    source_path = Path(source)
-    if not source_path.exists():
-        typer.echo(f"Archivo de entrada no encontrado: {source_path}", err=True)
+    if opportunity_page and target_account_page:
+        typer.echo("Usa solo --opportunity-page o --target-account-page, no ambos.", err=True)
         raise typer.Exit(code=2)
 
-    try:
-        data = json.loads(source_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        typer.echo(f"JSON invalido en {source_path}: {exc}", err=True)
-        raise typer.Exit(code=2)
+    if opportunity_page or target_account_page:
+        client, real = _build_notion_client()
+        if not real:
+            typer.echo("Para leer inputs canonicos se requiere Notion configurado.", err=True)
+            raise typer.Exit(code=2)
+        database_ids = _database_ids_for_names(["B2G SECOP Research", "B2G GTM Outputs"], client)
+        notion_input = (
+            resolve_opportunity_input(
+                opportunity_page_id=opportunity_page,
+                database_ids=database_ids,
+                client=client,
+            )
+            if opportunity_page
+            else resolve_target_account_input(
+                target_account_page_id=target_account_page,
+                database_ids=database_ids,
+                client=client,
+            )
+        )
+        opportunity, account, research = notion_input.builder_args()
+    else:
+        if not source:
+            typer.echo("Indica --source para preview local o --opportunity-page/--target-account-page para leer desde Notion.", err=True)
+            raise typer.Exit(code=2)
+        source_path = Path(source)
+        if not source_path.exists():
+            typer.echo(f"Archivo de entrada no encontrado: {source_path}", err=True)
+            raise typer.Exit(code=2)
 
-    opportunity = data.get("opportunity") or {}
-    account = data.get("account") or {}
-    research = data.get("research") or []
+        try:
+            data = json.loads(source_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            typer.echo(f"JSON invalido en {source_path}: {exc}", err=True)
+            raise typer.Exit(code=2)
+
+        opportunity = data.get("opportunity") or {}
+        account = data.get("account") or {}
+        research = data.get("research") or []
 
     from b2g_gtm_toolkit.outputs import (
         build_meeting_prep_context,
