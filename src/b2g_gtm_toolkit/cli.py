@@ -10,14 +10,23 @@ from pydantic import ValidationError
 
 import os
 
-from b2g_gtm_toolkit.models.business import BusinessProfile
+from b2g_gtm_toolkit.models.business import BusinessProfile, ICP
 from b2g_gtm_toolkit.models.gtm import TargetAccountList
-from b2g_gtm_toolkit.models.notion import NotionDatabaseSpec, NotionPropertySpec
+from b2g_gtm_toolkit.models.notion import (
+    NotionDatabaseSpec,
+    NotionPropertySpec,
+    NotionWorkspaceManifest,
+)
 from b2g_gtm_toolkit.models.secop import SecopNormalizedRecord, SecopResearchInput
 from b2g_gtm_toolkit.secop.research import default_offline_fixtures, run_research
 from b2g_gtm_toolkit.notion.schema import DEFAULT_MANIFEST, manifest_for
 from b2g_gtm_toolkit.notion.verify import plan_setup, verify_workspace
-from b2g_gtm_toolkit.notion.write import dedupe_filter_for_secop, secop_record_properties, upsert_page
+from b2g_gtm_toolkit.notion.write import (
+    dedupe_filter_for_secop,
+    import_workflow_to_notion,
+    secop_record_properties,
+    upsert_page,
+)
 
 app = typer.Typer(help="B2G GTM Toolkit CLI")
 
@@ -88,6 +97,10 @@ def _build_notion_client():
                 return [self.retrieve_database(item["id"]) for item in res.get("results", [])]
 
             def retrieve_database(self, database_id: str):
+                try:
+                    return self._c.data_sources.retrieve(data_source_id=database_id)
+                except Exception:
+                    pass
                 db = self._c.databases.retrieve(database_id=database_id)
                 sources = db.get("data_sources") or []
                 if not sources:
@@ -133,6 +146,101 @@ def _known_database_ids() -> dict:
         if val:
             out[db.name] = val
     return out
+
+
+def _all_database_ids_known(
+    manifest: NotionWorkspaceManifest,
+    known_database_ids: Dict[str, str],
+) -> bool:
+    return all(db.name in known_database_ids for db in manifest.databases)
+
+
+def _manifest_with_database(
+    manifest: NotionWorkspaceManifest,
+    database_name: str,
+) -> NotionWorkspaceManifest:
+    return NotionWorkspaceManifest(
+        version=manifest.version,
+        databases=[db for db in manifest.databases if db.name == database_name],
+    )
+
+
+def _manifest_with_databases(
+    manifest: NotionWorkspaceManifest,
+    database_names: list[str],
+) -> NotionWorkspaceManifest:
+    wanted = set(database_names)
+    return NotionWorkspaceManifest(
+        version=manifest.version,
+        databases=[db for db in manifest.databases if db.name in wanted],
+    )
+
+
+def _read_json_file(path: Path) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        typer.echo(f"Archivo no encontrado: {path}", err=True)
+        raise typer.Exit(code=2)
+    except json.JSONDecodeError as exc:
+        typer.echo(f"JSON invalido en {path}: {exc}", err=True)
+        raise typer.Exit(code=2)
+
+
+def _load_secop_records(path: Path) -> list[SecopNormalizedRecord]:
+    records: list[SecopNormalizedRecord] = []
+    for idx, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            data = json.loads(line)
+            prov = data.get("provenance") or {}
+            if data.get("source_dataset") and not prov.get("source_dataset"):
+                prov["source_dataset"] = data["source_dataset"]
+                data["provenance"] = prov
+            records.append(SecopNormalizedRecord.model_validate(data))
+        except (json.JSONDecodeError, ValidationError) as exc:
+            typer.echo(f"Linea {idx} invalida en {path}: {exc}", err=True)
+            raise typer.Exit(code=1)
+    return records
+
+
+def _resolve_secop_run_path(run: Path) -> Path:
+    if run.is_file():
+        return run
+    if run.is_dir():
+        candidate = run / "secop-research.jsonl"
+        if candidate.exists():
+            return candidate
+    candidate = Path("data/runs") / str(run) / "secop-research.jsonl"
+    if candidate.exists():
+        return candidate
+    typer.echo(f"Archivo SECOP no encontrado para --run: {run}", err=True)
+    raise typer.Exit(code=2)
+
+
+def _database_ids_for_names(database_names: list[str], client) -> Dict[str, str]:
+    manifest = manifest_for(None)
+    target_manifest = _manifest_with_databases(manifest, database_names)
+    known_ids = _known_database_ids()
+    report = verify_workspace(
+        target_manifest,
+        client,
+        known_ids,
+        allow_search_fallback=any(name not in known_ids for name in database_names),
+    )
+    database_ids = {db.name: db.database_id for db in report.databases if db.found and db.database_id}
+    missing = [name for name in database_names if name not in database_ids]
+    if missing:
+        typer.echo(
+            "No encontre las bases requeridas: "
+            + ", ".join(missing)
+            + ". Ejecuta primero 'b2g-gtm notion setup --apply'.",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+    return database_ids
 
 
 def _notion_property_schema(prop: NotionPropertySpec, database_ids: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
@@ -206,7 +314,16 @@ def notion_verify() -> None:
     if not real:
         typer.echo("NOTION_TOKEN no definido: verificando contra cliente stub (workspace vacio).")
     manifest = manifest_for(None)
-    report = verify_workspace(manifest, client, _known_database_ids())
+    known_ids = _known_database_ids()
+    allow_search_fallback = not (real and _all_database_ids_known(manifest, known_ids))
+    if real and not allow_search_fallback:
+        typer.echo("Usando IDs configurados de Notion; no se hara busqueda amplia.")
+    report = verify_workspace(
+        manifest,
+        client,
+        known_ids,
+        allow_search_fallback=allow_search_fallback,
+    )
     typer.echo("Reporte de verificacion de Notion:")
     typer.echo(report.summary())
     if report.ok:
@@ -227,7 +344,13 @@ def notion_setup(
         raise typer.Exit(code=2)
     client, _real = _build_notion_client()
     manifest = manifest_for(None)
-    report = verify_workspace(manifest, client, _known_database_ids())
+    known_ids = _known_database_ids()
+    report = verify_workspace(
+        manifest,
+        client,
+        known_ids,
+        allow_search_fallback=not _all_database_ids_known(manifest, known_ids),
+    )
     plan = plan_setup(manifest, report)
     typer.echo("Plan de setup (dry-run):")
     typer.echo(plan.summary())
@@ -303,7 +426,14 @@ def notion_sync(
         typer.echo("No se pudo inicializar el cliente real de Notion.", err=True)
         raise typer.Exit(code=2)
     manifest = manifest_for(None)
-    report = verify_workspace(manifest, client, _known_database_ids())
+    target_manifest = _manifest_with_database(manifest, target_db)
+    known_ids = _known_database_ids()
+    report = verify_workspace(
+        target_manifest,
+        client,
+        known_ids,
+        allow_search_fallback=target_db not in known_ids,
+    )
     target_status = next((db for db in report.databases if db.name == target_db and db.found), None)
     if not target_status or not target_status.database_id:
         typer.echo(f"No encontre la base '{target_db}'. Ejecuta primero 'b2g-gtm notion setup --apply'.", err=True)
@@ -315,6 +445,77 @@ def notion_sync(
     created = sum(1 for result in results if result.action == "create")
     updated = sum(1 for result in results if result.action == "update")
     typer.echo(f"Sync aplicado: {created} creados, {updated} actualizados.")
+    raise typer.Exit(code=0)
+
+
+@notion_app.command("import-workflow")
+def notion_import_workflow(
+    business_profile: Path = typer.Option(..., "--business-profile", help="Ruta al business-profile.json."),
+    icp: Path = typer.Option(..., "--icp", help="Ruta al icp.json."),
+    target_accounts: Path = typer.Option(..., "--target-accounts", help="Ruta al target-accounts.json."),
+    run: Path = typer.Option(..., "--run", help="Ruta a secop-research.jsonl, carpeta de corrida, o ID de corrida."),
+    apply: bool = typer.Option(False, "--apply", help="Escribir realmente en Notion (por defecto solo previsualiza)."),
+) -> None:
+    """Importa un workflow local completo a Notion. Default: preview sin escrituras."""
+    try:
+        profile = BusinessProfile.model_validate(_read_json_file(business_profile))
+        icp_model = ICP.model_validate(_read_json_file(icp))
+        account_list = TargetAccountList.model_validate(_read_json_file(target_accounts))
+    except ValidationError as exc:
+        typer.echo("Validacion fallida:", err=True)
+        for error in exc.errors():
+            loc = ".".join(str(part) for part in error["loc"])
+            typer.echo(f"  - {loc}: {error['msg']}", err=True)
+        raise typer.Exit(code=1)
+
+    run_path = _resolve_secop_run_path(run)
+    records = _load_secop_records(run_path)
+
+    required_dbs = [
+        "B2G Business Profiles",
+        "B2G ICPs",
+        "B2G Target Accounts",
+        "B2G SECOP Research",
+    ]
+    database_ids = {name: name for name in required_dbs}
+    client = None
+
+    if apply:
+        _load_cli_env()
+        if not os.environ.get("NOTION_TOKEN"):
+            typer.echo("--apply requiere NOTION_TOKEN en el entorno.", err=True)
+            raise typer.Exit(code=2)
+        client, real = _build_notion_client()
+        if not real:
+            typer.echo("No se pudo inicializar el cliente real de Notion.", err=True)
+            raise typer.Exit(code=2)
+        database_ids = _database_ids_for_names(required_dbs, client)
+
+    result = import_workflow_to_notion(
+        business_profile=profile,
+        icp=icp_model,
+        target_accounts=account_list.accounts,
+        secop_records=records,
+        database_ids=database_ids,
+        client=client,
+    )
+
+    all_results = [result.business_profile, result.icp, *result.target_accounts, *result.secop_records]
+    created = sum(1 for item in all_results if item.action in {"create", "dry_run_create"})
+    updated = sum(1 for item in all_results if item.action in {"update", "dry_run_update"})
+
+    if not apply:
+        typer.echo("Modo preview. Nada fue escrito en Notion.")
+    typer.echo(
+        f"Workflow procesado: 1 business profile, 1 ICP, {len(result.target_accounts)} target accounts, "
+        f"{len(result.secop_records)} registros SECOP."
+    )
+    typer.echo(f"Acciones: {created} creaciones planeadas/aplicadas, {updated} actualizaciones.")
+    typer.echo(f"Relaciones SECOP -> Target Account: {result.matched_secop_records}.")
+    if result.augmented_target_account_nits:
+        typer.echo(f"NIT inferidos para target accounts durante el import: {result.augmented_target_account_nits}.")
+    if not apply:
+        typer.echo("Usa --apply para escribir estos cambios en Notion.")
     raise typer.Exit(code=0)
 
 

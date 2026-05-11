@@ -148,6 +148,8 @@ def _resolve_database_payload(
     spec: NotionDatabaseSpec,
     client: NotionClientLike,
     known_ids: Dict[str, str],
+    *,
+    allow_search_fallback: bool = True,
 ) -> Optional[Dict[str, Any]]:
     db_id = known_ids.get(spec.name)
     if db_id:
@@ -157,6 +159,10 @@ def _resolve_database_payload(
             payload = None
         if payload:
             return payload
+        if not allow_search_fallback:
+            return None
+    if not allow_search_fallback:
+        return None
     try:
         candidates = client.search_databases(spec.name)
     except Exception:
@@ -188,11 +194,18 @@ def verify_workspace(
     manifest: NotionWorkspaceManifest,
     client: NotionClientLike,
     known_database_ids: Optional[Dict[str, str]] = None,
+    *,
+    allow_search_fallback: bool = True,
 ) -> VerifyReport:
     known = known_database_ids or {}
     statuses: List[DatabaseStatus] = []
     for spec in manifest.databases:
-        payload = _resolve_database_payload(spec, client, known)
+        payload = _resolve_database_payload(
+            spec,
+            client,
+            known,
+            allow_search_fallback=allow_search_fallback,
+        )
         if not payload:
             statuses.append(DatabaseStatus(name=spec.name, found=False))
             continue

@@ -33,12 +33,14 @@ class FakeNotionClient:
     def __init__(self, databases: List[Dict[str, Any]]):
         self._by_id = {db["id"]: db for db in databases}
         self._by_title: Dict[str, Dict[str, Any]] = {}
+        self.search_queries: List[str] = []
         for db in databases:
             title = db.get("title")
             if isinstance(title, list) and title:
                 self._by_title[title[0].get("plain_text", "")] = db
 
     def search_databases(self, query: str):
+        self.search_queries.append(query)
         match = self._by_title.get(query)
         return [match] if match else []
 
@@ -77,6 +79,25 @@ def test_verify_all_present():
     assert plan.creates == []
     assert plan.updates == []
     assert len(plan.noops) == len(DEFAULT_MANIFEST.databases)
+
+
+def test_verify_uses_known_ids_without_search_fallback():
+    databases = [_build_db_payload(spec) for spec in DEFAULT_MANIFEST.databases]
+    client = FakeNotionClient(databases)
+    known_ids = {
+        spec.name: "db-" + spec.name.replace(" ", "-").lower()
+        for spec in DEFAULT_MANIFEST.databases
+    }
+
+    report = verify_workspace(
+        DEFAULT_MANIFEST,
+        client,
+        known_ids,
+        allow_search_fallback=False,
+    )
+
+    assert report.ok is True
+    assert client.search_queries == []
 
 
 def test_verify_one_database_missing():
