@@ -1,0 +1,21 @@
+{
+  "name": "govbridge-gtm-video-demo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "preview": "remotion preview src/index.ts",
+    "render": "remotion render src/index.ts GovBridgeDemo out/govbridge-demo.mp4",
+    "render:smoke": "remotion render src/index.ts GovBridgeDemo out/govbridge-demo-smoke.mp4 --frames=0-60 --overwrite",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.279",
+    "@remotion/player": "^4.0.279",
+    "remotion": "^4.0.279",
+    "typescript": "^5.6.3"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1"
+  }
+}
