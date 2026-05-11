@@ -44,22 +44,22 @@ El agente debe encargarse de instalar dependencias, configurar `.env`, verificar
 
 Despues de `pip install -e .` el comando `b2g-gtm` queda disponible. Si prefieres correr sin instalar, usa `PYTHONPATH=src python -m b2g_gtm_toolkit.cli ...`.
 
-Quick-start MVP (sin red, todo con fixtures locales):
+Quick-start MVP para mantenedores (con datos de ejemplo incluidos en el repo):
 
 ```bash
 b2g-gtm validate business-profile examples/business-profile.json
 b2g-gtm validate target-accounts examples/target-accounts.json
-b2g-gtm secop research --input examples/secop-research-input.json --offline
 b2g-gtm notion verify
 b2g-gtm notion setup --dry-run
 b2g-gtm notion setup --apply
-b2g-gtm notion sync --run <run-id> --apply
-b2g-gtm output create --type outreach --source examples/opportunity.json
+b2g-gtm secop research --input examples/secop-research-input.json --offline --to-notion --apply
+b2g-gtm notion import-workflow --business-profile examples/business-profile.json --icp examples/icp.json --target-accounts examples/target-accounts.json --run <run-id> --apply
+b2g-gtm output create --type outreach --opportunity-page <notion-page-id> --to-notion --apply
 ```
 
-`--offline` usa datos de ejemplo incluidos en el repo, sin consultar servicios externos. `b2g-gtm notion verify` regresa exit code 1 cuando aun no hay un workspace creado o configurado. `notion setup --dry-run` imprime el plan sin escribir, `notion setup --apply` crea/actualiza las bases requeridas con confirmación explícita y `notion sync --apply` escribe registros reales en Notion cuando hay credenciales válidas.
+`--offline` usa datos de ejemplo incluidos en el repo, sin consultar servicios externos. `b2g-gtm notion verify` regresa exit code 1 cuando aun no hay un workspace creado o configurado. `notion setup --dry-run` imprime el plan sin escribir y `notion setup --apply` crea/actualiza las bases requeridas con confirmación explícita.
 
-Las salidas crudas de cada ejecucion quedan en `data/runs/<run-id>/secop-research.jsonl` con su `manifest.json`.
+En un flujo real, `secop research --to-notion --apply`, `notion import-workflow --apply` y `output create --opportunity-page/--target-account-page --to-notion --apply` escriben los resultados en Notion. Los archivos locales bajo `data/runs/`, los JSON de `examples/` y cualquier markdown exportado son artefactos de preview, importacion, pruebas o diagnostico; no son el estado GTM reutilizable.
 
 ## Compatibilidad con agentes
 
@@ -70,7 +70,7 @@ El toolkit esta pensado para usarse desde agentes de codificacion como Codex y C
 - `src/b2g_gtm_toolkit/` - paquete Python con CLI, modelos, cliente SECOP y helpers de Notion.
 - `schemas/` - JSON Schemas de entrada/salida.
 - `skills/` - skills de agente para los flujos GTM.
-- `data/runs/` - logs auditables de cada ejecucion local.
+- `data/runs/` - artefactos auditables de ejecucion local para preview, importacion o diagnostico.
 - `.sdd/specs/001-b2g-gtm-toolkit/` - spec, plan y tareas.
 
 ## Iteracion 2 - automatizacion pendiente

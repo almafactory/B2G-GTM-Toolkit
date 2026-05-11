@@ -34,7 +34,7 @@ Activa esta skill cuando el usuario pida:
 | `meeting-prep` | `outputs.meeting_prep.build_meeting_prep_context` | `templates/meeting-prep.md` |
 | `proposal` | `outputs.proposal_brief.build_proposal_context` | `templates/proposal-brief.md` |
 
-Cada builder retorna un diccionario determinístico (sin LLM) con campos normalizados y una lista `source_refs` con referencias SECOP. El comando CLI `b2g-gtm output create --type <tipo> --source <archivo.json>` ensambla el markdown final.
+Cada builder retorna un diccionario determinístico (sin LLM) con campos normalizados y una lista `source_refs` con referencias SECOP. En un flujo real, el agente debe leer la oportunidad o cuenta objetivo desde Notion y guardar el entregable en `B2G GTM Outputs` con `b2g-gtm output create --type <tipo> --opportunity-page <page-id> --to-notion --apply` o `--target-account-page <page-id> --to-notion --apply`. `--source <archivo.json>` queda para previews locales, pruebas o importaciones explícitas.
 
 ## Permisos y datos externos
 
@@ -104,11 +104,11 @@ Reglas:
 
 ## Flujo recomendado
 
-1. El AE selecciona una oportunidad investigada (archivo JSON con `opportunity`, `account`, `research`).
-2. El agente ejecuta internamente el tipo de entregable necesario (`outreach`, `meeting-prep` o `proposal`).
-3. El agente reporta el resultado como artefacto listo para revisar, no como comando ejecutado.
-4. El AE revisa tono, valida supuestos y decide si lo envía o lo guarda.
-5. Si hace falta guardar o sincronizar con Notion, el agente pide autorización explícita y una sola acción de permiso a la vez.
+1. El AE selecciona una oportunidad o cuenta objetivo en Notion.
+2. El agente genera internamente el tipo de entregable necesario (`outreach`, `meeting-prep` o `proposal`) leyendo el contexto canónico desde Notion.
+3. Con autorización explícita, el agente escribe o actualiza el entregable en `B2G GTM Outputs`.
+4. El agente reporta si la página de Notion fue creada o actualizada, el registro de negocio al que quedó asociada y el siguiente paso comercial.
+5. El AE revisa tono y supuestos en Notion antes de enviar o aprobar. Los archivos locales sólo se usan para vista previa, importación o diagnóstico.
 
 ## Validación
 

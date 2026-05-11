@@ -47,8 +47,8 @@ Si ambos devuelven `True`, los dos agentes estan listos.
 | Skill | Proposito | Trigger sugerido |
 |---|---|---|
 | `b2g-icp-workflow` | Construir / pressure-test ICP B2G y derivar target accounts. | "definir ICP B2G", "construir lista de cuentas objetivo" |
-| `b2g-notion-gtm-os` | Verificar workspace de Notion, planificar setup dry-run, sincronizar resultados de investigacion. | "verificar Notion", "sync GTM en Notion" |
-| `b2g-output-workflows` | Generar outreach, meeting prep y propuesta/business case desde una oportunidad investigada. | "generar outreach", "preparar reunion AE", "armar business case" |
+| `b2g-notion-gtm-os` | Verificar workspace de Notion, planificar setup, importar workflows locales y escribir investigacion SECOP en Notion. | "verificar Notion", "sync GTM en Notion" |
+| `b2g-output-workflows` | Generar outreach, meeting prep y propuesta/business case desde oportunidades o cuentas en Notion. | "generar outreach", "preparar reunion AE", "armar business case" |
 
 ## 3. Comandos CLI subyacentes para agentes
 
@@ -62,11 +62,13 @@ b2g-gtm secop research --input examples/secop-research-input.json
 b2g-gtm notion verify
 b2g-gtm notion setup --dry-run
 b2g-gtm notion setup --apply
+b2g-gtm secop research --input examples/secop-research-input.json --to-notion --apply
+b2g-gtm notion import-workflow --business-profile examples/business-profile.json --icp examples/icp.json --target-accounts examples/target-accounts.json --run <run-id> --apply
 b2g-gtm notion sync --run <run-id>
 b2g-gtm notion sync --run <run-id> --apply
-b2g-gtm output create --type outreach     --source examples/opportunity.json
-b2g-gtm output create --type meeting-prep --source examples/opportunity.json
-b2g-gtm output create --type proposal     --source examples/opportunity.json
+b2g-gtm output create --type outreach     --opportunity-page <notion-page-id> --to-notion --apply
+b2g-gtm output create --type meeting-prep --opportunity-page <notion-page-id> --to-notion --apply
+b2g-gtm output create --type proposal     --target-account-page <notion-page-id> --to-notion --apply
 ```
 
 ## 4. Walkthrough interno end-to-end (MVP)
@@ -76,26 +78,26 @@ Asumiendo el repo clonado, dependencias instaladas y `.env` configurado segun `.
 1. **Instala las skills para tu agente** (paso 1).
 2. **Define el ICP** invocando `b2g-icp-workflow` y compartiendo `examples/business-profile.json`. La skill produce un brief tipo `examples/icp.json`.
 3. **Genera target accounts** con la misma skill (segunda fase). Toma como referencia `examples/target-accounts.json`.
-4. **Investiga SECOP** internamente:
+4. **Investiga SECOP** internamente y escribe el resultado en Notion cuando el usuario lo autorice:
    ```bash
-   b2g-gtm secop research --input examples/secop-research-input.json
+   b2g-gtm secop research --input examples/secop-research-input.json --to-notion --apply
    ```
-   Esto escribe `data/runs/<run-id>/secop-research.jsonl`.
-5. **Verifica y sincroniza Notion** con la skill `b2g-notion-gtm-os`:
+   El resultado de negocio queda en `B2G SECOP Research`. Los archivos bajo `data/runs/` son artefactos locales de auditoria, importacion o diagnostico.
+5. **Verifica, crea o importa en Notion** con la skill `b2g-notion-gtm-os`:
    ```bash
    b2g-gtm notion verify
    b2g-gtm notion setup --dry-run
    b2g-gtm notion setup --apply
-   b2g-gtm notion sync --run <run-id> --apply
+   b2g-gtm notion import-workflow --business-profile examples/business-profile.json --icp examples/icp.json --target-accounts examples/target-accounts.json --run <run-id> --apply
    ```
-6. **Crea entregables para AE** desde una oportunidad investigada:
+6. **Crea entregables para AE** desde una oportunidad o cuenta objetivo de Notion:
    ```bash
-   b2g-gtm output create --type outreach     --source examples/opportunity.json
-   b2g-gtm output create --type meeting-prep --source examples/opportunity.json
-   b2g-gtm output create --type proposal     --source examples/opportunity.json
+   b2g-gtm output create --type outreach --opportunity-page <notion-page-id> --to-notion --apply
+   b2g-gtm output create --type meeting-prep --opportunity-page <notion-page-id> --to-notion --apply
+   b2g-gtm output create --type proposal --target-account-page <notion-page-id> --to-notion --apply
    ```
 
-Cada paso se puede ensayar con los archivos de `examples/` antes de usar datos reales. Al explicar esto a un usuario no técnico, di "datos de ejemplo incluidos con el proyecto", no "fixtures" ni "offline". Para el mapa visual de este flujo, ver `docs/workflows.md`.
+Cada paso se puede ensayar con los archivos de `examples/` antes de usar datos reales. En flujos reales, Notion es el estado canonico y los archivos locales son preview, importacion, pruebas o diagnostico. Al explicar esto a un usuario no técnico, di "datos de ejemplo incluidos con el proyecto", no "fixtures" ni "offline". Para el mapa visual de este flujo, ver `docs/workflows.md`.
 
 ## 5. Reinstalar tras actualizar las skills
 

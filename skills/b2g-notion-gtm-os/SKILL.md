@@ -1,13 +1,13 @@
 ---
 name: b2g-notion-gtm-os
-description: Verificar, crear y sincronizar el workspace GTM B2G en Notion con dry-run primero y escrituras explícitas.
+description: Verificar, crear, importar y sincronizar el workspace GTM B2G en Notion con preview primero y escrituras explícitas.
 version: 1.0.0
 language: es
 ---
 
 # B2G Notion GTM OS
 
-Esta skill orquesta la integración entre el toolkit B2G GTM y un workspace de Notion que actúa como sistema operativo GTM. La premisa es **dry-run primero**: nunca se escribe en Notion sin confirmación explícita, un token válido y una página compartida con la integración.
+Esta skill orquesta la integración entre el toolkit B2G GTM y un workspace de Notion que actúa como sistema operativo GTM. La premisa es **preview primero**: nunca se escribe en Notion sin confirmación explícita, un token válido y una página compartida con la integración.
 
 Cuando el usuario no sea técnico, no le muestres comandos por defecto. Guíalo en términos de Notion UI: crear/reutilizar integración, compartir la página, pasar la URL de la página y autorizar al agente a configurar el workspace.
 
@@ -30,14 +30,25 @@ Si falta un permiso externo, pide **una sola acción del usuario a la vez** y es
    - Ejecuta `b2g-gtm notion setup --apply` sólo cuando el usuario haya confirmado que quiere crear/actualizar el workspace.
    - Tras aplicar, ejecuta `b2g-gtm notion verify` y sólo reporta éxito si todas las bases quedan en OK.
 
-3. **Sync de investigación**
+3. **Import de workflow local existente**
+   - Usa `b2g-gtm notion import-workflow --business-profile <archivo> --icp <archivo> --target-accounts <archivo> --run <run>`.
+   - Por defecto es preview: valida y muestra acciones planeadas sin escribir.
+   - Usa `--apply` sólo con autorización explícita. El resultado real debe quedar en Notion: Business Profile, ICP, Target Accounts y SECOP Research.
+   - Presenta los archivos locales como material de importación o diagnóstico, no como el workspace GTM reutilizable.
+
+4. **Investigación SECOP hacia Notion**
+   - Ejecuta `b2g-gtm secop research --input <archivo> --to-notion --apply` para el flujo real autorizado.
+   - Reporta cuántos registros se crearon y cuántos se actualizaron en `B2G SECOP Research`.
+   - Si se corre sin `--apply`, di "vista previa; no se escribió nada".
+
+5. **Sync de investigación ya guardada**
    - Ejecuta `b2g-gtm notion sync --run <run-id>`.
    - Carga `data/runs/<run-id>/secop-research.jsonl` (producido por la skill SECOP) y mapea cada registro a propiedades de la base `B2G SECOP Research`.
-   - Por defecto el comando es dry-run y muestra los upserts planeados (clave de dedupe = `Source Record ID`).
+   - Por defecto el comando es preview y muestra los upserts planeados (clave de dedupe = `Source Record ID`).
    - Ejecuta `b2g-gtm notion sync --run <run-id> --apply` sólo con token válido y workspace verificado.
    - Reporta cuántos registros fueron creados y cuántos actualizados. No digas que hay datos en Notion antes de ver ese resultado.
 
-4. **Revisión humana**
+6. **Revisión humana**
    - Toda página con campo `Approval Status` debe revisarse manualmente antes de pasar de `draft` a `approved`.
    - Las relaciones (ICP → Business Profile, Target Account → ICP, SECOP Research → Target Account, Opportunity → Target Account, Signal → Owner) se rellenan después de que las páginas relacionadas existan.
 
@@ -64,7 +75,7 @@ El nombre de la variable se construye como `NOTION_DB_<NOMBRE_DE_LA_BASE>` con e
 
 - No digas "fixture", "stub", "dry-run" u "offline" a usuarios no técnicos sin traducirlo.
 - Di "datos de ejemplo incluidos en el proyecto" cuando se use la corrida local de prueba.
-- Di "vista previa; no se escribió nada" cuando se use dry-run.
+- Di "vista previa; no se escribió nada" cuando se use preview.
 - Cuando un permiso de Notion bloquee el flujo, pide una sola acción concreta y descríbela en lenguaje de la UI de Notion.
 - No repitas tokens en respuestas.
 - Si un token fue pegado en chat, recomienda rotarlo antes de usarlo en producción.

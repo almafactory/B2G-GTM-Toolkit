@@ -102,6 +102,14 @@ If Notion sync is configured and authorized, the agent may write sample SECOP re
 
 Do not say data was mounted in Notion unless a real write succeeded.
 
+When the user authorizes a real workflow, Notion is the place where the business result lives. SECOP research, imported company context, target accounts, opportunities, and generated AE deliverables should be created or updated in Notion. Local files may still exist behind the scenes for a safe preview, import, troubleshooting, or audit trail, but they should not be presented as the user's reusable GTM workspace.
+
+For generated deliverables, report the Notion outcome:
+
+- whether the deliverable was written to Notion;
+- whether a page was created or updated;
+- which business record it belongs to, such as the opportunity or target account.
+
 ## Recommended Agent Report
 
 Use this shape:
