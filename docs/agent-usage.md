@@ -2,6 +2,17 @@
 
 Este documento explica como instalar el paquete de skills B2G y usarlo desde **Claude Code** o **Codex** sobre el mismo repositorio. Las skills son carpetas con un `SKILL.md` y plantillas que el agente carga para guiar el flujo GTM completo: ICP, target accounts, investigacion SECOP, sync con Notion y entregables para Account Executives.
 
+## Principio de UX
+
+El usuario no técnico no debería operar la terminal. Los comandos de este documento son una referencia interna para agentes y mantenedores. Cuando el usuario pida un resultado de negocio ("conecta Notion", "ensayemos el toolkit", "genera outreach"), el agente debe ejecutar los pasos necesarios y explicar sólo:
+
+- qué necesita del usuario;
+- qué se verificó;
+- qué se creó o actualizó;
+- cuál es el siguiente paso de negocio.
+
+Para el flujo sin jerga técnica, ver [`docs/non-technical-onboarding.md`](./non-technical-onboarding.md). Para lecciones aprendidas de fricción real, ver [`docs/ux-friction-log.md`](./ux-friction-log.md).
+
 ## 1. Instalar el skill pack
 
 Los scripts de instalacion copian las carpetas de `skills/` al directorio que cada agente espera. Son **idempotentes**: si el destino ya tiene el mismo contenido, se omite; si difiere, advierten y requieren `-Force` para sobrescribir.
@@ -39,9 +50,9 @@ Si ambos devuelven `True`, los dos agentes estan listos.
 | `b2g-notion-gtm-os` | Verificar workspace de Notion, planificar setup dry-run, sincronizar resultados de investigacion. | "verificar Notion", "sync GTM en Notion" |
 | `b2g-output-workflows` | Generar outreach, meeting prep y propuesta/business case desde una oportunidad investigada. | "generar outreach", "preparar reunion AE", "armar business case" |
 
-## 3. Comandos CLI subyacentes
+## 3. Comandos CLI subyacentes para agentes
 
-Las skills llaman a `b2g-gtm` (Typer). Los comandos principales:
+Las skills llaman a `b2g-gtm` (Typer). Estos comandos son internos: úsalos desde el agente, no como instrucciones que el usuario debe copiar por defecto.
 
 ```bash
 b2g-gtm init
@@ -50,20 +61,22 @@ b2g-gtm validate target-accounts examples/target-accounts.json
 b2g-gtm secop research --input examples/secop-research-input.json
 b2g-gtm notion verify
 b2g-gtm notion setup --dry-run
+b2g-gtm notion setup --apply
 b2g-gtm notion sync --run <run-id>
+b2g-gtm notion sync --run <run-id> --apply
 b2g-gtm output create --type outreach     --source examples/opportunity.json
 b2g-gtm output create --type meeting-prep --source examples/opportunity.json
 b2g-gtm output create --type proposal     --source examples/opportunity.json
 ```
 
-## 4. Walkthrough end-to-end (MVP)
+## 4. Walkthrough interno end-to-end (MVP)
 
-Asumiendo el repo clonado, dependencias instaladas (`pip install -e .`) y `.env` configurado segun `.env.example`:
+Asumiendo el repo clonado, dependencias instaladas y `.env` configurado segun `.env.example`:
 
 1. **Instala las skills para tu agente** (paso 1).
 2. **Define el ICP** invocando `b2g-icp-workflow` y compartiendo `examples/business-profile.json`. La skill produce un brief tipo `examples/icp.json`.
 3. **Genera target accounts** con la misma skill (segunda fase). Toma como referencia `examples/target-accounts.json`.
-4. **Investiga SECOP**:
+4. **Investiga SECOP** internamente:
    ```bash
    b2g-gtm secop research --input examples/secop-research-input.json
    ```
@@ -72,7 +85,8 @@ Asumiendo el repo clonado, dependencias instaladas (`pip install -e .`) y `.env`
    ```bash
    b2g-gtm notion verify
    b2g-gtm notion setup --dry-run
-   b2g-gtm notion sync --run <run-id>
+   b2g-gtm notion setup --apply
+   b2g-gtm notion sync --run <run-id> --apply
    ```
 6. **Crea entregables para AE** desde una oportunidad investigada:
    ```bash
@@ -81,7 +95,7 @@ Asumiendo el repo clonado, dependencias instaladas (`pip install -e .`) y `.env`
    b2g-gtm output create --type proposal     --source examples/opportunity.json
    ```
 
-Cada paso se puede ensayar con los archivos de `examples/` antes de usar datos reales. Para el mapa visual de este flujo, ver `docs/workflows.md`.
+Cada paso se puede ensayar con los archivos de `examples/` antes de usar datos reales. Al explicar esto a un usuario no técnico, di "datos de ejemplo incluidos con el proyecto", no "fixtures" ni "offline". Para el mapa visual de este flujo, ver `docs/workflows.md`.
 
 ## 5. Reinstalar tras actualizar las skills
 

@@ -2,19 +2,22 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 import typer
+from dotenv import load_dotenv
 from pydantic import ValidationError
 
 import os
 
 from b2g_gtm_toolkit.models.business import BusinessProfile
 from b2g_gtm_toolkit.models.gtm import TargetAccountList
+from b2g_gtm_toolkit.models.notion import NotionDatabaseSpec, NotionPropertySpec
 from b2g_gtm_toolkit.models.secop import SecopNormalizedRecord, SecopResearchInput
 from b2g_gtm_toolkit.secop.research import default_offline_fixtures, run_research
 from b2g_gtm_toolkit.notion.schema import DEFAULT_MANIFEST, manifest_for
 from b2g_gtm_toolkit.notion.verify import plan_setup, verify_workspace
-from b2g_gtm_toolkit.notion.write import dedupe_filter_for_secop, secop_record_properties
+from b2g_gtm_toolkit.notion.write import dedupe_filter_for_secop, secop_record_properties, upsert_page
 
 app = typer.Typer(help="B2G GTM Toolkit CLI")
 
@@ -54,7 +57,13 @@ class _StubNotionClient:
         return {"id": page_id}
 
 
+def _load_cli_env(dotenv_path: Optional[Path] = None) -> bool:
+    """Load local CLI configuration without overwriting exported values."""
+    return load_dotenv(dotenv_path=dotenv_path or (Path.cwd() / ".env"), override=False)
+
+
 def _build_notion_client():
+    _load_cli_env()
     token = os.environ.get("NOTION_TOKEN")
     if not token:
         return _StubNotionClient(), False
@@ -67,21 +76,47 @@ def _build_notion_client():
             def __init__(self, c):
                 self._c = c
 
+            def _data_source_id(self, database_id: str) -> str:
+                db = self._c.databases.retrieve(database_id=database_id)
+                sources = db.get("data_sources") or []
+                if sources:
+                    return sources[0]["id"]
+                return database_id
+
             def search_databases(self, query: str):
                 res = self._c.search(query=query, filter={"value": "database", "property": "object"})
-                return res.get("results", [])
+                return [self.retrieve_database(item["id"]) for item in res.get("results", [])]
 
             def retrieve_database(self, database_id: str):
-                return self._c.databases.retrieve(database_id=database_id)
+                db = self._c.databases.retrieve(database_id=database_id)
+                sources = db.get("data_sources") or []
+                if not sources:
+                    return db
+                source = self._c.data_sources.retrieve(data_source_id=sources[0]["id"])
+                source["database_id"] = db.get("id")
+                return source
 
             def query_database(self, database_id: str, filter):
-                return self._c.databases.query(database_id=database_id, filter=filter).get("results", [])
+                return self._c.data_sources.query(data_source_id=database_id, filter=filter).get("results", [])
 
             def create_page(self, database_id: str, properties):
-                return self._c.pages.create(parent={"database_id": database_id}, properties=properties)
+                return self._c.pages.create(parent={"data_source_id": database_id}, properties=properties)
 
             def update_page(self, page_id: str, properties):
                 return self._c.pages.update(page_id=page_id, properties=properties)
+
+            def create_database(self, parent_page_id: str, title: str, properties):
+                db = self._c.databases.create(
+                    parent={"type": "page_id", "page_id": parent_page_id},
+                    title=[{"type": "text", "text": {"content": title}}],
+                )
+                data_source_id = db["data_sources"][0]["id"]
+                if properties:
+                    return self.update_database(data_source_id, properties)
+                return self._c.data_sources.retrieve(data_source_id=data_source_id)
+
+            def update_database(self, database_id: str, properties):
+                return self._c.data_sources.update(data_source_id=database_id, properties=properties)
 
         return _RealAdapter(real), True
     except Exception as exc:
@@ -90,6 +125,7 @@ def _build_notion_client():
 
 
 def _known_database_ids() -> dict:
+    _load_cli_env()
     out = {}
     for db in DEFAULT_MANIFEST.databases:
         env_key = "NOTION_DB_" + db.name.upper().replace(" ", "_")
@@ -97,6 +133,70 @@ def _known_database_ids() -> dict:
         if val:
             out[db.name] = val
     return out
+
+
+def _notion_property_schema(prop: NotionPropertySpec, database_ids: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    if prop.type.value == "select":
+        return {"select": {"options": [{"name": option} for option in prop.options]}}
+    if prop.type.value == "multi_select":
+        return {"multi_select": {"options": [{"name": option} for option in prop.options]}}
+    if prop.type.value == "relation":
+        target_id = (database_ids or {}).get(prop.relation_database or "")
+        if not target_id:
+            raise ValueError(f"relation target not available for {prop.name}: {prop.relation_database}")
+        return {"relation": {"data_source_id": target_id, "type": "single_property", "single_property": {}}}
+    return {prop.type.value: {}}
+
+
+def _database_properties_for_create(db: NotionDatabaseSpec) -> Dict[str, Any]:
+    properties: Dict[str, Any] = {}
+    for prop in db.properties:
+        if prop.type.value == "relation":
+            continue
+        if prop.type.value == "title":
+            properties["Name"] = {"name": prop.name, "title": {}}
+            continue
+        properties[prop.name] = _notion_property_schema(prop)
+    return properties
+
+
+def _missing_property_specs(db: NotionDatabaseSpec, missing_names: list[str]) -> list[NotionPropertySpec]:
+    missing = set(missing_names)
+    return [prop for prop in db.properties if prop.name in missing]
+
+
+def _apply_database_setup(manifest, report, client, parent_page_id: str) -> Dict[str, str]:
+    database_ids = {status.name: status.database_id for status in report.databases if status.found and status.database_id}
+    state_by_name = {status.name: status for status in report.databases}
+    spec_by_name = {db.name: db for db in manifest.databases}
+
+    for db in manifest.databases:
+        if db.name in database_ids:
+            continue
+        created = client.create_database(parent_page_id, db.name, _database_properties_for_create(db))
+        database_ids[db.name] = created["id"]
+        typer.echo(f"Creada: {db.name} ({created['id']})")
+
+    for db in manifest.databases:
+        status = state_by_name.get(db.name)
+        missing_names = list(status.missing_properties) if status and status.found else [
+            prop.name for prop in db.properties if prop.type.value == "relation"
+        ]
+        relation_issues = [issue.property for issue in (status.missing_relations if status else [])]
+        missing_names.extend(name for name in relation_issues if name not in missing_names)
+        props_to_add = _missing_property_specs(db, missing_names)
+        if not props_to_add:
+            continue
+        properties = {}
+        for prop in props_to_add:
+            if prop.type.value == "title":
+                properties["Name"] = {"name": prop.name, "title": {}}
+            else:
+                properties[prop.name] = _notion_property_schema(prop, database_ids)
+        client.update_database(database_ids[db.name], properties)
+        typer.echo(f"Actualizada: {db.name} (+{len(properties)} propiedades)")
+
+    return database_ids
 
 
 @notion_app.command("verify")
@@ -119,14 +219,11 @@ def notion_verify() -> None:
 @notion_app.command("setup")
 def notion_setup(
     dry_run: bool = typer.Option(False, "--dry-run", help="Mostrar el plan sin aplicar cambios."),
-    apply: bool = typer.Option(False, "--apply", help="(no implementado en V1)"),
+    apply: bool = typer.Option(False, "--apply", help="Crear/actualizar bases de datos en Notion."),
 ) -> None:
     """Planifica la creacion/actualizacion del workspace de Notion."""
-    if apply:
-        typer.echo("--apply no implementado en V1; ejecutá --dry-run", err=True)
-        raise typer.Exit(code=2)
-    if not dry_run:
-        typer.echo("Indica --dry-run para previsualizar el plan.", err=True)
+    if not dry_run and not apply:
+        typer.echo("Indica --dry-run para previsualizar o --apply para aplicar.", err=True)
         raise typer.Exit(code=2)
     client, _real = _build_notion_client()
     manifest = manifest_for(None)
@@ -136,6 +233,21 @@ def notion_setup(
     typer.echo(plan.summary())
     if plan.is_empty():
         typer.echo("Workspace ya cumple el manifiesto.")
+        raise typer.Exit(code=0)
+    if not apply:
+        raise typer.Exit(code=0)
+
+    parent_page_id = os.environ.get("NOTION_PARENT_PAGE_ID")
+    if not os.environ.get("NOTION_TOKEN") or not parent_page_id:
+        typer.echo("--apply requiere NOTION_TOKEN y NOTION_PARENT_PAGE_ID en el entorno.", err=True)
+        raise typer.Exit(code=2)
+    if dry_run:
+        typer.echo("Aplicando despues de mostrar el plan porque tambien se indico --apply.")
+    database_ids = _apply_database_setup(manifest, report, client, parent_page_id)
+    typer.echo("Setup aplicado. IDs de bases creadas/encontradas:")
+    for name, database_id in database_ids.items():
+        env_key = "NOTION_DB_" + name.upper().replace(" ", "_")
+        typer.echo(f"  {env_key}={database_id}")
     raise typer.Exit(code=0)
 
 
@@ -181,12 +293,29 @@ def notion_sync(
         typer.echo(f"Total: {len(payloads)} upserts. Usa --apply para escribir.")
         raise typer.Exit(code=0)
 
+    _load_cli_env()
     if not os.environ.get("NOTION_TOKEN"):
         typer.echo("--apply requiere NOTION_TOKEN en el entorno.", err=True)
         raise typer.Exit(code=2)
 
-    typer.echo("Escritura real no implementada en V1; usa el modo dry-run.", err=True)
-    raise typer.Exit(code=2)
+    client, real = _build_notion_client()
+    if not real:
+        typer.echo("No se pudo inicializar el cliente real de Notion.", err=True)
+        raise typer.Exit(code=2)
+    manifest = manifest_for(None)
+    report = verify_workspace(manifest, client, _known_database_ids())
+    target_status = next((db for db in report.databases if db.name == target_db and db.found), None)
+    if not target_status or not target_status.database_id:
+        typer.echo(f"No encontre la base '{target_db}'. Ejecuta primero 'b2g-gtm notion setup --apply'.", err=True)
+        raise typer.Exit(code=2)
+
+    results = []
+    for _src_id, props, dedupe in payloads:
+        results.append(upsert_page(target_status.database_id, props, dedupe, client))
+    created = sum(1 for result in results if result.action == "create")
+    updated = sum(1 for result in results if result.action == "update")
+    typer.echo(f"Sync aplicado: {created} creados, {updated} actualizados.")
+    raise typer.Exit(code=0)
 
 
 @secop_app.command("research")

@@ -39,6 +39,53 @@ class FakeNotionClient:
         return {"id": page_id}
 
 
+class StatefulFakeNotionClient:
+    def __init__(self) -> None:
+        self.queries: List[Dict[str, Any]] = []
+        self.creates: List[Dict[str, Any]] = []
+        self.updates: List[Dict[str, Any]] = []
+        self.pages: Dict[str, Dict[str, Any]] = {}
+
+    def query_database(self, database_id: str, filter: Optional[Dict[str, Any]]):
+        self.queries.append({"database_id": database_id, "filter": filter})
+        expected = _dedupe_values(filter)
+        for page_id, properties in self.pages.items():
+            if _property_values(properties) == expected:
+                return [{"id": page_id, "properties": properties}]
+        return []
+
+    def create_page(self, database_id: str, properties: Dict[str, Any]):
+        page_id = f"page_{len(self.creates) + 1}"
+        self.creates.append({"database_id": database_id, "properties": properties})
+        self.pages[page_id] = properties
+        return {"id": page_id}
+
+    def update_page(self, page_id: str, properties: Dict[str, Any]):
+        self.updates.append({"page_id": page_id, "properties": properties})
+        self.pages[page_id] = properties
+        return {"id": page_id}
+
+
+def _dedupe_values(filter: Optional[Dict[str, Any]]) -> Dict[str, str]:
+    values: Dict[str, str] = {}
+    for clause in (filter or {}).get("and", []):
+        prop = clause.get("property")
+        if prop == "Source Platform":
+            values[prop] = clause["select"]["equals"]
+        elif prop == "Source Record ID":
+            values[prop] = clause["rich_text"]["equals"]
+    return values
+
+
+def _property_values(properties: Dict[str, Any]) -> Dict[str, str]:
+    source_platform = properties["Source Platform"]["select"]["name"]
+    source_record_id = properties["Source Record ID"]["rich_text"][0]["text"]["content"]
+    return {
+        "Source Platform": source_platform,
+        "Source Record ID": source_record_id,
+    }
+
+
 def _load_records(jsonl: Path) -> List[SecopNormalizedRecord]:
     out: List[SecopNormalizedRecord] = []
     for line in jsonl.read_text(encoding="utf-8").splitlines():
@@ -98,6 +145,40 @@ def test_research_jsonl_maps_to_notion_payloads(tmp_path: Path) -> None:
     assert "and" in dedupe_filter
     keys = {clause["property"] for clause in dedupe_filter["and"]}
     assert {"Source Platform", "Source Record ID"}.issubset(keys)
+
+
+def test_repeated_secop_upsert_updates_existing_page(tmp_path: Path) -> None:
+    input_data = SecopResearchInput(
+        task_type=ResearchTaskType.opportunity_discovery,
+        datasets=["secop_ii_procesos"],
+        result_limit=10,
+        page_size=10,
+    )
+    run = run_research(
+        input_data,
+        output_root=tmp_path,
+        offline_fixtures=default_offline_fixtures(FIXTURE_DIR),
+    )
+    records = _load_records(run.jsonl_path)
+    assert records
+
+    rec = records[0]
+    target_db = "B2G SECOP Research"
+    fake = StatefulFakeNotionClient()
+    dedupe = dedupe_filter_for_secop(rec)
+
+    first = upsert_page(target_db, secop_record_properties(rec), dedupe, client=fake)
+    updated_props = secop_record_properties(rec)
+    updated_props["Object"]["title"][0]["text"]["content"] = "Updated SECOP object"
+    second = upsert_page(target_db, updated_props, dedupe, client=fake)
+
+    assert first.action == "create"
+    assert second.action == "update"
+    assert first.page_id == second.page_id
+    assert len(fake.creates) == 1
+    assert len(fake.updates) == 1
+    assert len(fake.pages) == 1
+    assert fake.pages[first.page_id]["Object"]["title"][0]["text"]["content"] == "Updated SECOP object"
 
 
 def test_dry_run_without_client_returns_planned_payloads(tmp_path: Path) -> None:

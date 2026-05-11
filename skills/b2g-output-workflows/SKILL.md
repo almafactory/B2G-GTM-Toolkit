@@ -36,6 +36,10 @@ Activa esta skill cuando el usuario pida:
 
 Cada builder retorna un diccionario determinístico (sin LLM) con campos normalizados y una lista `source_refs` con referencias SECOP. El comando CLI `b2g-gtm output create --type <tipo> --source <archivo.json>` ensambla el markdown final.
 
+## Permisos y datos externos
+
+Si el entregable necesita un archivo, una oportunidad de Notion, acceso a un documento comercial o confirmación del AE, pide **una sola acción del usuario a la vez**. Ejemplos: "comparte la oportunidad investigada", luego "confirma el rol del comprador", luego "autoriza guardar el entregable en Notion". No conviertas el bloqueo en una lista de comandos o requisitos técnicos.
+
 ## Metodología
 
 Adaptada de las skills internas de ventas (`E:\skills\ventas\gtm-outreach-strategy.md`, `gtm-meeting-prep.md`, `gtm-qualification-scoring.md`) al contexto B2G colombiano.
@@ -101,10 +105,10 @@ Reglas:
 ## Flujo recomendado
 
 1. El AE selecciona una oportunidad investigada (archivo JSON con `opportunity`, `account`, `research`).
-2. Ejecuta `b2g-gtm output create --type outreach --source path/to/opportunity.json`.
-3. Revisa el markdown impreso, ajusta tono, envía.
-4. Antes de la reunión, ejecuta `--type meeting-prep`.
-5. Para follow-up post-discovery, ejecuta `--type proposal`.
+2. El agente ejecuta internamente el tipo de entregable necesario (`outreach`, `meeting-prep` o `proposal`).
+3. El agente reporta el resultado como artefacto listo para revisar, no como comando ejecutado.
+4. El AE revisa tono, valida supuestos y decide si lo envía o lo guarda.
+5. Si hace falta guardar o sincronizar con Notion, el agente pide autorización explícita y una sola acción de permiso a la vez.
 
 ## Validación
 

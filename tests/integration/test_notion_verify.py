@@ -2,16 +2,25 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
+from b2g_gtm_toolkit.cli import _apply_database_setup
 from b2g_gtm_toolkit.notion.schema import DEFAULT_MANIFEST
 from b2g_gtm_toolkit.notion.verify import plan_setup, verify_workspace
 
 
-def _build_db_payload(spec) -> Dict[str, Any]:
+def _build_db_payload(
+    spec,
+    *,
+    relation_target_key: str = "database_id",
+    omit_properties: Optional[set[str]] = None,
+) -> Dict[str, Any]:
+    omit = omit_properties or set()
     properties: Dict[str, Any] = {}
     for prop in spec.properties:
+        if prop.name in omit:
+            continue
         block: Dict[str, Any] = {"type": prop.type.value, prop.type.value: {}}
         if prop.type.value == "relation":
-            block["relation"] = {"database_id": "fake-id-" + (prop.relation_database or "")}
+            block["relation"] = {relation_target_key: "fake-id-" + (prop.relation_database or "")}
         properties[prop.name] = block
     return {
         "id": "db-" + spec.name.replace(" ", "-").lower(),
@@ -44,6 +53,18 @@ class FakeNotionClient:
 
     def update_page(self, page_id, properties):
         return {"id": page_id}
+
+
+class FakeSetupClient:
+    def __init__(self):
+        self.updated_databases: List[tuple[str, Dict[str, Any]]] = []
+
+    def create_database(self, parent_page_id: str, title: str, properties):
+        raise AssertionError("test fixture should not create databases")
+
+    def update_database(self, database_id: str, properties):
+        self.updated_databases.append((database_id, properties))
+        return {"id": database_id, "properties": properties}
 
 
 def test_verify_all_present():
@@ -93,3 +114,52 @@ def test_verify_property_type_mismatch():
         a.database == "B2G Target Accounts" and "Fit Score" in a.detail
         for a in plan.updates
     )
+
+
+def test_verify_relation_target_accepts_data_source_id():
+    databases = [
+        _build_db_payload(spec, relation_target_key="data_source_id")
+        for spec in DEFAULT_MANIFEST.databases
+    ]
+    client = FakeNotionClient(databases)
+
+    report = verify_workspace(DEFAULT_MANIFEST, client)
+
+    assert report.ok is True
+    assert all(not db.missing_relations for db in report.databases)
+
+
+def test_apply_setup_maps_missing_relations_to_data_source_ids():
+    target_accounts = next(db for db in DEFAULT_MANIFEST.databases if db.name == "B2G Target Accounts")
+    payloads = []
+    for spec in DEFAULT_MANIFEST.databases:
+        missing = {"Owner", "ICP"} if spec.name == target_accounts.name else set()
+        payloads.append(_build_db_payload(spec, omit_properties=missing))
+    report = verify_workspace(DEFAULT_MANIFEST, FakeNotionClient(payloads))
+    client = FakeSetupClient()
+
+    database_ids = _apply_database_setup(DEFAULT_MANIFEST, report, client, "parent-page")
+
+    assert database_ids["B2G Owners"] == "db-b2g-owners"
+    assert database_ids["B2G ICPs"] == "db-b2g-icps"
+    assert client.updated_databases == [
+        (
+            "db-b2g-target-accounts",
+            {
+                "Owner": {
+                    "relation": {
+                        "data_source_id": "db-b2g-owners",
+                        "type": "single_property",
+                        "single_property": {},
+                    }
+                },
+                "ICP": {
+                    "relation": {
+                        "data_source_id": "db-b2g-icps",
+                        "type": "single_property",
+                        "single_property": {},
+                    }
+                },
+            },
+        )
+    ]

@@ -110,7 +110,9 @@ Lo que el agente puede ver desde afuera para detectar fit + trigger:
 3. Cuando tengas el business profile, propón 1 a 3 segmentos B2G candidatos y deja que el usuario priorice.
 4. Para el segmento priorizado, completa `templates/icp-brief.md`.
 5. Genera también una versión JSON del ICP y del business profile que el usuario pueda guardar.
-6. Recomienda validar con `b2g-gtm validate business-profile <ruta.json>`.
+6. Valida internamente el business profile antes de reportar que está listo.
+
+Si necesitas acceso externo para completar el ICP (por ejemplo, un documento comercial, lista de clientes, enlace interno, o permiso para guardar en Notion), pide **una sola acción del usuario a la vez** y explícala como resultado esperado, no como comando. Mantén la entrevista en pasos pequeños: una pregunta o permiso bloqueante por turno.
 
 ## Validaciones de contrato
 
@@ -124,6 +126,7 @@ Lo que el agente puede ver desde afuera para detectar fit + trigger:
 - Toda la salida al usuario en **español**.
 - Evita jerga genérica de SaaS gringo: usa el lenguaje del sector público colombiano (entidad, ordenador del gasto, supervisor, plan de adquisiciones, SECOP).
 - No inventes cifras ni nombres de entidades. Si no hay dato, marca el gap.
+- Reporta avances como resultados de negocio y siguiente acción, no como comandos ejecutados.
 
 ---
 
@@ -212,13 +215,7 @@ Estructura final (JSON):
 ```
 
 ### Paso 7 — Validar
-Recomienda al usuario:
-
-```bash
-b2g-gtm validate target-accounts <ruta.json>
-```
-
-El comando verifica:
+Valida internamente la lista antes de reportarla como lista para usar. La validación verifica:
 - Lista no vacía.
 - `0 <= fit_score <= 100` para cada cuenta.
 - No hay duplicados por id estable (`name + entity_type + location`).

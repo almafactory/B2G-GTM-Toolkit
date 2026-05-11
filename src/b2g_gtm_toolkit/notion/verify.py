@@ -127,7 +127,11 @@ def _check_database(spec: NotionDatabaseSpec, db_payload: Dict[str, Any]) -> Dat
             relation_block = actual.get("relation") if isinstance(actual, dict) else None
             target = None
             if isinstance(relation_block, dict):
-                target = relation_block.get("database_id") or relation_block.get("database_name")
+                target = (
+                    relation_block.get("data_source_id")
+                    or relation_block.get("database_id")
+                    or relation_block.get("database_name")
+                )
             if prop.relation_database and not target:
                 status.missing_relations.append(
                     PropertyIssue(

@@ -29,6 +29,19 @@ Edita `.env` con tu token de Notion, IDs del workspace y, opcionalmente, tu app 
 
 ## Primer uso
 
+### Camino recomendado: agente guiado
+
+Si no eres técnico, no necesitas operar la terminal. Pídele al agente algo como:
+
+- "Conecta este toolkit a Notion"
+- "Ensayemos el toolkit con datos de ejemplo"
+- "Corre investigación SECOP y guarda el resultado en Notion"
+- "Genera outreach para esta oportunidad"
+
+El agente debe encargarse de instalar dependencias, configurar `.env`, verificar Notion, correr las validaciones y explicar los resultados en lenguaje simple. La guía de onboarding sin jerga técnica está en `docs/non-technical-onboarding.md`.
+
+### Camino técnico: CLI
+
 Despues de `pip install -e .` el comando `b2g-gtm` queda disponible. Si prefieres correr sin instalar, usa `PYTHONPATH=src python -m b2g_gtm_toolkit.cli ...`.
 
 Quick-start MVP (sin red, todo con fixtures locales):
@@ -39,11 +52,12 @@ b2g-gtm validate target-accounts examples/target-accounts.json
 b2g-gtm secop research --input examples/secop-research-input.json --offline
 b2g-gtm notion verify
 b2g-gtm notion setup --dry-run
-b2g-gtm notion sync --run <run-id>
+b2g-gtm notion setup --apply
+b2g-gtm notion sync --run <run-id> --apply
 b2g-gtm output create --type outreach --source examples/opportunity.json
 ```
 
-`b2g-gtm notion verify` regresa exit code 1 cuando aun no hay un workspace creado: ese es el comportamiento esperado en modo stub. `notion setup --dry-run` imprime el plan sin escribir y `notion sync` opera en dry-run por defecto (usa `--apply` cuando V2 habilite escrituras reales).
+`--offline` usa datos de ejemplo incluidos en el repo, sin consultar servicios externos. `b2g-gtm notion verify` regresa exit code 1 cuando aun no hay un workspace creado o configurado. `notion setup --dry-run` imprime el plan sin escribir, `notion setup --apply` crea/actualiza las bases requeridas con confirmación explícita y `notion sync --apply` escribe registros reales en Notion cuando hay credenciales válidas.
 
 Las salidas crudas de cada ejecucion quedan en `data/runs/<run-id>/secop-research.jsonl` con su `manifest.json`.
 
