@@ -57,11 +57,13 @@ When the user says "try it", "ensayemos", "probemos", or similar:
 
 1. Read the README and relevant skills internally.
 2. Install missing dependencies if safe.
-3. If Notion is not configured, explain that the trial can either use sample local outputs or first connect Notion.
-4. If using sample data, say so plainly.
-5. Run validation/research internally.
-6. Sync to Notion only if real credentials are configured and setup is verified.
-7. Report:
+3. Default to interpreting the request as a real workflow trial using real user/business inputs and real configured services, not sample/mock data.
+4. Treat mock/sample-data tests as internal engineering validation only; do not present them as the user-facing trial unless the user explicitly asks for a sample-data preview.
+5. If Notion is not configured, explain that a real trial needs Notion connected first, or ask whether they explicitly want a sample-data preview while setup is pending.
+6. If using sample data for any reason, say so plainly and make clear that nothing real was validated end-to-end.
+7. Run validation/research internally.
+8. Sync to Notion only if real credentials are configured and setup is verified.
+9. Report:
    - whether sample or real data was used;
    - whether Notion was actually written;
    - how many records were created/updated;

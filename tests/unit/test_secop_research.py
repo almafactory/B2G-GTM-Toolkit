@@ -7,7 +7,7 @@ from b2g_gtm_toolkit.models.secop import ResearchTaskType, SecopResearchInput, S
 from b2g_gtm_toolkit.secop.datasets import DATASETS, get_dataset
 from b2g_gtm_toolkit.secop.dedupe import dedupe
 from b2g_gtm_toolkit.secop.normalize import normalize_record, parse_currency, parse_date
-from b2g_gtm_toolkit.secop.research import default_offline_fixtures, run_research
+from b2g_gtm_toolkit.secop.research import _input_filters_to_where, default_offline_fixtures, run_research
 
 
 FIXTURE_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "secop"
@@ -90,6 +90,25 @@ def test_run_research_offline_writes_jsonl(tmp_path: Path):
     manifest = json.loads(run.manifest_path.read_text(encoding="utf-8"))
     assert manifest["raw_count"] >= run.deduped_count
     assert manifest["deduped_count"] == run.deduped_count
+
+
+def test_input_filters_include_entity_name_municipality_and_keywords():
+    dataset = get_dataset("secop_ii_procesos")
+    input_data = SecopResearchInput(
+        task_type=ResearchTaskType.opportunity_discovery,
+        entity_names=["Alcaldia de Soledad"],
+        municipalities=["Soledad"],
+        keywords=["ERP", "software financiero"],
+    )
+
+    where = _input_filters_to_where(input_data, dataset)
+
+    assert where is not None
+    assert "entidad like '%ALCALDIA DE SOLEDAD%'" in where
+    assert "ciudad_entidad like '%Soledad%'" in where
+    assert "ciudad_entidad like '%SOLEDAD%'" in where
+    assert "descripci_n_del_procedimiento like '%ERP%'" in where
+    assert "descripci_n_del_procedimiento like '%SOFTWARE FINANCIERO%'" in where
 
 
 def test_dataset_registry_has_expected_datasets():

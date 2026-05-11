@@ -85,7 +85,45 @@ def _input_filters_to_where(input_data: SecopResearchInput, dataset: DatasetSpec
             if normalized == "buyer_nit":
                 filters[raw_key] = input_data.entity_nits
                 break
-    return build_where_clause(filters)
+    clauses = []
+    exact_clause = build_where_clause(filters)
+    if exact_clause:
+        clauses.append(exact_clause)
+
+    field_by_normalized = {normalized: raw_key for raw_key, normalized in dataset.field_map.items()}
+    contains_specs = [
+        ("buyer_name", input_data.entity_names),
+        ("municipality", input_data.municipalities),
+        ("department", input_data.departments),
+        ("object", input_data.keywords),
+        ("unspsc_primary", input_data.unspsc_codes),
+        ("modality", input_data.modalities),
+        ("status", input_data.statuses),
+        ("supplier_name", input_data.suppliers),
+    ]
+    for normalized_field, values in contains_specs:
+        raw_key = field_by_normalized.get(normalized_field)
+        if raw_key:
+            clause = _contains_any_clause(raw_key, values)
+            if clause:
+                clauses.append(clause)
+
+    if not clauses:
+        return None
+    return " AND ".join(f"({clause})" for clause in clauses)
+
+
+def _contains_any_clause(field: str, values: List[str]) -> Optional[str]:
+    cleaned = [value.strip() for value in values if value and value.strip()]
+    if not cleaned:
+        return None
+    parts = []
+    for value in cleaned:
+        variants = {value, value.upper(), value.title()}
+        for variant in variants:
+            safe = variant.replace("'", "''")
+            parts.append(f"{field} like '%{safe}%'")
+    return " OR ".join(parts)
 
 
 def _default_record_source(client: Optional[SocrataClient]) -> RecordSource:

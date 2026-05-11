@@ -24,6 +24,7 @@ class DatasetSpec:
 SECOP_II_PROCESOS_FIELD_MAP: Dict[str, str] = {
     "id_del_proceso": "process_id",
     "nombre_entidad": "buyer_name",
+    "entidad": "buyer_name",
     "nit_entidad": "buyer_nit",
     "departamento_entidad": "department",
     "ciudad_entidad": "municipality",
@@ -37,7 +38,9 @@ SECOP_II_PROCESOS_FIELD_MAP: Dict[str, str] = {
     "codigo_principal_de_categoria": "unspsc_primary",
     "urlproceso": "source_url",
     "proveedor_adjudicado": "supplier_name",
+    "nombre_del_proveedor": "supplier_name",
     "documento_proveedor": "supplier_nit",
+    "nit_del_proveedor_adjudicado": "supplier_nit",
 }
 
 
