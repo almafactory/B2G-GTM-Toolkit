@@ -142,3 +142,93 @@ def test_output_create_writes_and_reuses_notion_output_page(monkeypatch) -> None
     assert output_props["Research Records"]["relation"][0]["id"] == "research-1"
     assert "Alcaldia de Soledad" in output_props["Content"]["rich_text"][0]["text"]["content"]
     assert fake.children["output-1"]
+
+
+def test_output_import_preview_does_not_initialize_or_write_notion(monkeypatch, tmp_path) -> None:
+    markdown = tmp_path / "existing-outreach.md"
+    markdown.write_text("# Existing Outreach\n\nMensaje importado", encoding="utf-8")
+
+    def fail_build_client():
+        raise AssertionError("preview must not initialize Notion")
+
+    monkeypatch.setattr(cli, "_build_notion_client", fail_build_client)
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli.app,
+        [
+            "output",
+            "import",
+            "--type",
+            "outreach",
+            "--file",
+            str(markdown),
+            "--target-account-page",
+            "account-1",
+            "--to-notion",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Preview de importacion" in result.output
+    assert "Existing Outreach" in result.output
+
+
+def test_output_import_apply_creates_then_updates_with_relations(monkeypatch, tmp_path) -> None:
+    markdown = tmp_path / "existing-meeting-prep.md"
+    markdown.write_text("# Existing Meeting Prep\n\nContenido para reunion", encoding="utf-8")
+    fake = FakeOutputWorkflowClient()
+    monkeypatch.setattr(cli, "_build_notion_client", lambda: (fake, True))
+    monkeypatch.setattr(
+        cli,
+        "_database_ids_for_names",
+        lambda names, client: {"B2G GTM Outputs": "db_outputs"},
+    )
+    runner = CliRunner()
+    args = [
+        "output",
+        "import",
+        "--type",
+        "meeting-prep",
+        "--file",
+        str(markdown),
+        "--target-account-page",
+        "account-1",
+        "--opportunity-page",
+        "opportunity-1",
+        "--research-page",
+        "research-1",
+        "--to-notion",
+        "--apply",
+    ]
+
+    first = runner.invoke(cli.app, args)
+    markdown.write_text("# Existing Meeting Prep\n\nContenido actualizado", encoding="utf-8")
+    second = runner.invoke(cli.app, args)
+
+    assert first.exit_code == 0, first.output
+    assert second.exit_code == 0, second.output
+    assert len(fake.creates) == 1
+    assert len(fake.updates) == 1
+
+    output_props = fake.pages["output-1"]["properties"]
+    assert output_props["Title"]["title"][0]["text"]["content"] == "Existing Meeting Prep"
+    assert output_props["Target Account"]["relation"][0]["id"] == "account-1"
+    assert output_props["Opportunity"]["relation"][0]["id"] == "opportunity-1"
+    assert output_props["Research Records"]["relation"][0]["id"] == "research-1"
+    assert "Contenido actualizado" in output_props["Content"]["rich_text"][0]["text"]["content"]
+    assert "existing-meeting-prep.md" in output_props["Source Summary"]["rich_text"][0]["text"]["content"]
+
+
+def test_output_import_apply_requires_target_or_opportunity_relation(tmp_path) -> None:
+    markdown = tmp_path / "unlinked.md"
+    markdown.write_text("# Unlinked\n\nBody", encoding="utf-8")
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli.app,
+        ["output", "import", "--type", "outreach", "--file", str(markdown), "--to-notion", "--apply"],
+    )
+
+    assert result.exit_code == 2
+    assert "requiere --target-account-page o --opportunity-page" in result.output

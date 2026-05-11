@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -680,6 +681,49 @@ def _build_gtm_output_for_write(
     )
 
 
+def _first_markdown_h1(content: str) -> Optional[str]:
+    for line in content.splitlines():
+        match = re.match(r"^#\s+(.+?)\s*$", line)
+        if match:
+            return match.group(1).strip()
+    return None
+
+
+def _generated_import_title(type_label: str, file: Path) -> str:
+    stem = file.stem.replace("-", " ").replace("_", " ").strip()
+    return f"Imported {type_label}: {stem or 'markdown output'}"
+
+
+def _build_imported_gtm_output(
+    *,
+    output_type: GtmOutputType,
+    type_label: str,
+    file: Path,
+    content: str,
+    target_account_page: Optional[str],
+    opportunity_page: Optional[str],
+    research_pages: list[str],
+) -> GtmOutput:
+    title = _first_markdown_h1(content) or _generated_import_title(type_label, file)
+    relation_bits = []
+    if target_account_page:
+        relation_bits.append(f"Target Account {target_account_page}")
+    if opportunity_page:
+        relation_bits.append(f"Opportunity {opportunity_page}")
+    if research_pages:
+        relation_bits.append(f"{len(research_pages)} research records")
+    relation_summary = "; ".join(relation_bits) if relation_bits else "no Notion relations provided"
+    return GtmOutput(
+        type=output_type,
+        title=title,
+        content=content,
+        source_summary=f"Imported local markdown file '{file.name}'; {relation_summary}.",
+        target_account_ref=target_account_page,
+        opportunity_ref=opportunity_page,
+        research_record_refs=research_pages,
+    )
+
+
 @output_app.command("create")
 def output_create(
     type: str = typer.Option(..., "--type", help="Tipo de salida: outreach | meeting-prep | proposal."),
@@ -806,6 +850,73 @@ def output_create(
 
     if not out:
         typer.echo(markdown)
+    raise typer.Exit(code=0)
+
+
+@output_app.command("import")
+def output_import(
+    type: str = typer.Option(..., "--type", help="Tipo de salida: outreach | meeting-prep | proposal."),
+    file: Path = typer.Option(..., "--file", help="Ruta al markdown local existente."),
+    target_account_page: Optional[str] = typer.Option(None, "--target-account-page", help="ID de pagina Notion de B2G Target Accounts."),
+    opportunity_page: Optional[str] = typer.Option(None, "--opportunity-page", help="ID de pagina Notion de B2G Opportunities."),
+    research_pages: Optional[list[str]] = typer.Option(None, "--research-page", help="ID de pagina Notion de B2G SECOP Research. Repetible."),
+    to_notion: bool = typer.Option(False, "--to-notion", help="Preparar importacion del output en Notion."),
+    apply: bool = typer.Option(False, "--apply", help="Aplicar la escritura en Notion. Requiere --to-notion."),
+) -> None:
+    """Importa un markdown local existente a B2G GTM Outputs. Default: preview sin escrituras."""
+    if type not in _OUTPUT_TYPE_MAP:
+        typer.echo(
+            f"Tipo invalido '{type}'. Opciones: {', '.join(_OUTPUT_TYPE_MAP.keys())}.", err=True
+        )
+        raise typer.Exit(code=2)
+
+    if apply and not to_notion:
+        typer.echo("Para escribir en Notion usa --to-notion --apply.", err=True)
+        raise typer.Exit(code=2)
+
+    if apply and not (target_account_page or opportunity_page):
+        typer.echo(
+            "--apply requiere --target-account-page o --opportunity-page para evitar outputs sin relacion en Notion.",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    if not file.exists():
+        typer.echo(f"Archivo markdown no encontrado: {file}", err=True)
+        raise typer.Exit(code=2)
+
+    content = file.read_text(encoding="utf-8")
+    if not content.strip():
+        typer.echo(f"Archivo markdown vacio: {file}", err=True)
+        raise typer.Exit(code=2)
+
+    _template_name, _builder_name, output_type = _OUTPUT_TYPE_MAP[type]
+    output = _build_imported_gtm_output(
+        output_type=output_type,
+        type_label=type,
+        file=file,
+        content=content,
+        target_account_page=target_account_page,
+        opportunity_page=opportunity_page,
+        research_pages=research_pages or [],
+    )
+
+    if not apply:
+        preview = upsert_gtm_output("B2G GTM Outputs", output)
+        typer.echo("Preview de importacion: nada fue escrito en Notion.")
+        typer.echo(f"  output: {output.title}")
+        typer.echo(f"  accion planeada: {preview.action}")
+        typer.echo("  usa --to-notion --apply para escribir este output.")
+        raise typer.Exit(code=0)
+
+    client, real = _build_notion_client()
+    if not real:
+        typer.echo("Para escribir en Notion se requiere Notion configurado.", err=True)
+        raise typer.Exit(code=2)
+    database_ids = _database_ids_for_names(["B2G GTM Outputs"], client)
+    result = upsert_gtm_output(database_ids["B2G GTM Outputs"], output, client)
+    typer.echo(f"OK: output importado y {'actualizado' if result.action == 'update' else 'creado'} en Notion")
+    typer.echo(f"  pagina: {result.page_id}")
     raise typer.Exit(code=0)
 
 

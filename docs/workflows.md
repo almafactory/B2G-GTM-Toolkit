@@ -41,6 +41,7 @@ flowchart LR
 | 7 | Outreach AE | [`skills/b2g-output-workflows/SKILL.md`](../skills/b2g-output-workflows/SKILL.md) | `b2g-gtm output create --type outreach --opportunity-page <page-id> --to-notion --apply` | Oportunidad en Notion | Output en `B2G GTM Outputs` |
 | 8 | Meeting Prep AE | [`skills/b2g-output-workflows/SKILL.md`](../skills/b2g-output-workflows/SKILL.md) | `b2g-gtm output create --type meeting-prep --opportunity-page <page-id> --to-notion --apply` | Oportunidad en Notion | Output en `B2G GTM Outputs` |
 | 9 | Propuesta / Business Case | [`skills/b2g-output-workflows/SKILL.md`](../skills/b2g-output-workflows/SKILL.md) | `b2g-gtm output create --type proposal --target-account-page <page-id> --to-notion --apply` | Cuenta objetivo en Notion | Output en `B2G GTM Outputs` |
+| 10 | Importar markdown AE existente | [`skills/b2g-notion-gtm-os/SKILL.md`](../skills/b2g-notion-gtm-os/SKILL.md) | `b2g-gtm output import --type outreach --file output.md --target-account-page <page-id> --to-notion --apply` | Markdown local y relacion de Notion | Output en `B2G GTM Outputs` |
 
 ## Notas
 
@@ -49,4 +50,5 @@ flowchart LR
 - Los archivos locales que se generen durante el paso 4 son artefactos de preview, importacion o diagnostico; no son el estado GTM reutilizable.
 - El paso 5 valida el schema; el paso 6 importa material local existente a Notion y requiere credenciales reales en `.env`.
 - Los pasos 7-9 dependen de tener al menos una oportunidad o cuenta investigada en Notion con referencias SECOP.
+- El paso 10 es para migracion de markdown existente; por defecto previsualiza y solo escribe con `--apply`.
 - Para el detalle de instalacion del skill pack y cuando dispararlo, ver [`docs/agent-usage.md`](./agent-usage.md).

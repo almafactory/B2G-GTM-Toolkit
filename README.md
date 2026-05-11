@@ -55,11 +55,12 @@ b2g-gtm notion setup --apply
 b2g-gtm secop research --input examples/secop-research-input.json --offline --to-notion --apply
 b2g-gtm notion import-workflow --business-profile examples/business-profile.json --icp examples/icp.json --target-accounts examples/target-accounts.json --run <run-id> --apply
 b2g-gtm output create --type outreach --opportunity-page <notion-page-id> --to-notion --apply
+b2g-gtm output import --type outreach --file path/to/output.md --target-account-page <notion-page-id> --to-notion --apply
 ```
 
 `--offline` usa datos de ejemplo incluidos en el repo, sin consultar servicios externos. `b2g-gtm notion verify` regresa exit code 1 cuando aun no hay un workspace creado o configurado. `notion setup --dry-run` imprime el plan sin escribir y `notion setup --apply` crea/actualiza las bases requeridas con confirmación explícita.
 
-En un flujo real, `secop research --to-notion --apply`, `notion import-workflow --apply` y `output create --opportunity-page/--target-account-page --to-notion --apply` escriben los resultados en Notion. Los archivos locales bajo `data/runs/`, los JSON de `examples/` y cualquier markdown exportado son artefactos de preview, importacion, pruebas o diagnostico; no son el estado GTM reutilizable.
+En un flujo real, `secop research --to-notion --apply`, `notion import-workflow --apply`, `output create --opportunity-page/--target-account-page --to-notion --apply` y `output import --file ... --to-notion --apply` escriben los resultados en Notion. Los archivos locales bajo `data/runs/`, los JSON de `examples/` y cualquier markdown exportado son artefactos de preview, importacion, pruebas o diagnostico; no son el estado GTM reutilizable.
 
 ## Compatibilidad con agentes
 

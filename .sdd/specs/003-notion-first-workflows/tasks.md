@@ -70,11 +70,11 @@
 
 ## Phase 9: Migration
 
-- [ ] T045 Add a migration command for existing local output markdown files into `B2G GTM Outputs`.
+- [X] T045 Add a migration command for existing local output markdown files into `B2G GTM Outputs`.
 - [ ] T046 Add a migration command or documented internal path for existing `data/runs` research folders.
-- [ ] T047 Ensure migration can run in preview mode and apply mode.
+- [X] T047 Ensure migration can run in preview mode and apply mode.
 - [ ] T048 After migration, ensure future workflows read the imported Notion records rather than the original local files.
-- [ ] T049 Add migration tests for no duplicate pages on repeated runs.
+- [X] T049 Add migration tests for no duplicate pages on repeated runs.
 
 ## Phase 10: Verification And Release
 
